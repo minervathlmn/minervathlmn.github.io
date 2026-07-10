@@ -44,7 +44,7 @@ const DEMO_SCRIPT = [
       { x: 0, y: 3, colour: 'dark' },
       { x: 1, y: 2, colour: 'light' },
     ],
-    step: { from: { x: 0, y: 3 }, to: { x: 2, y: 1 }, captured: { x: 2, y: 2 } },
+    step: { from: { x: 0, y: 3 }, to: { x: 2, y: 1 }, captured: { x: 1, y: 2 } },
   },
   {
     label: 'King promotion',

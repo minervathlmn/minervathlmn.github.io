@@ -1,0 +1,718 @@
+:root {
+  --beige: #ecdfc8;
+  --beige-light: #f4efe1;
+  --maroon: #5c2b2b;
+  --maroon-deep: #3d1c1c;
+  --green: #8a9b6e;
+  --plum: #c9b6d6;
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'Inter', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--beige-light);
+  color: var(--maroon-deep);
+  font-family: var(--font-body);
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* --- Landing + mode-select screens: centered content --- */
+
+.screen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.title {
+  font-family: 'Archivo Black', var(--font-display), sans-serif;
+  font-size: 5.5rem;
+  font-weight: 555;
+  color: var(--maroon);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: var(--maroon);
+  margin: 0;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--maroon);
+  margin: 0 0 0.5rem;
+}
+
+.landing-actions, .mode-actions, .difficulty-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+#play-btn, #rules-btn {
+  font-size: 1.47rem;
+  padding: 1rem 2.25rem;
+}
+
+.difficulty-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* --- Buttons --- */
+
+.btn {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 0.75rem 1.75rem;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--maroon);
+  color: var(--beige-light);
+}
+.btn-primary:hover {
+  background: var(--maroon-deep);
+}
+
+.btn-secondary, .btn-outline {
+  background: transparent;
+  color: var(--maroon);
+  border-color: var(--maroon);
+}
+.btn-secondary:hover, .btn-outline:hover {
+  background: var(--maroon);
+  color: var(--beige-light);
+}
+
+.btn-outline.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--beige-light);
+}
+
+.btn-text {
+  background: transparent;
+  border: none;
+  color: var(--maroon-deep);
+  text-decoration: underline;
+  padding: 0.25rem;
+}
+
+.btn-small {
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+}
+
+/* --- Game screen: sidebar + board --- */
+
+.board {
+  width: min(90vw, 90vh); /* scales with whichever is smaller */
+  aspect-ratio: 1 / 1;    /* keeps it square */
+  display: grid;
+  grid-template-columns: repeat(8, 1fr); /* squares are fractions, not fixed px */
+  grid-template-rows: repeat(8, 1fr);
+}
+
+#game-screen {
+  display: flex;
+  height: 100vh;
+}
+
+#sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--maroon);
+  color: var(--beige-light);
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sidebar-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+}
+
+.turn-indicator {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  /* font-size: 0.78rem; */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  /* letter-spacing: 0.06em; */
+  color: var(--beige-light);
+  background: rgba(244, 239, 225, 0.12);
+  /* background: rgba(244, 239, 225, 0.14); */
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+  margin: 0 0 1rem;
+  /* padding: 0.45rem 0.6rem;
+  margin: -0.4rem 0 0.6rem; */
+  text-align: center;
+}
+
+.sidebar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.4rem 0;
+}
+.sidebar-group .eyebrow {
+  color: var(--beige-light);
+}
+.sidebar-group .btn-outline {
+  color: var(--beige-light);
+  border-color: var(--beige-light);
+}
+.sidebar-group .btn-outline:hover {
+  background: var(--beige-light);
+  color: var(--maroon);
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: rgba(244, 239, 225, 0.25);
+  margin: 0.4rem 0;
+}
+
+.sidebar-spacer {
+  flex-grow: 1;
+}
+
+.btn-sidebar {
+  background: transparent;
+  color: var(--beige-light);
+  border: 2px solid rgba(244, 239, 225, 0.4);
+  text-align: left;
+}
+.btn-sidebar:hover, .btn-sidebar.active {
+  background: var(--beige-light);
+  color: var(--maroon);
+  border-color: var(--beige-light);
+}
+
+#canvas-container {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--beige-light);
+}
+
+/* --- Sidebar drawer (narrow screens) --- */
+
+.sidebar-toggle-btn {
+  display: none;
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 25;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  background: var(--maroon);
+  color: var(--beige-light);
+  border: none;
+  border-radius: 4px;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(61, 28, 28, 0.55);
+  z-index: 18;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.sidebar-backdrop.visible {
+  display: block;
+  opacity: 1;
+}
+
+@media (max-width: 800px) {
+  .sidebar-toggle-btn {
+    display: flex;
+  }
+
+  #sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 260px;
+    max-width: 80vw;
+    z-index: 20;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.3);
+    padding-top: 4rem; /* clear the hamburger button */
+  }
+
+  #sidebar.open {
+    transform: translateX(0);
+  }
+}
+
+/* --- Rules modal --- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(61, 28, 28, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.modal-content {
+  position: relative;
+  background: var(--beige-light);
+  border-radius: 6px;
+  padding: 2rem;
+  max-width: 480px;
+  width: 90%;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  outline: none;
+  border-radius: 4px;
+  color: var(--maroon);
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.modal-close:hover {
+  color: var(--maroon-deep);
+}
+.modal-close:focus {
+  outline: none;
+}
+
+.rules-list {
+  text-align: left;
+  line-height: 1.6;
+  padding-left: 1.2rem;
+}
+
+.rules-list li {
+  margin-bottom: 0.6rem;
+}
+
+.demo-scene-label {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--maroon);
+  text-align: center;
+  margin: 0.25rem 0 0;
+}
+
+
+#demo-canvas-container {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+ 
+#watch-demo-btn, #read-rules-btn {
+  display: block;
+  margin: 0.5rem auto 0;
+}
+
+/* --- Settings modal --- */
+
+.settings-section {
+  margin-bottom: 1.75rem;
+}
+.settings-section:last-child {
+  margin-bottom: 0;
+}
+
+.settings-heading {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--maroon-deep);
+  text-align: center;
+  margin: 0 0 0.6rem;
+}
+
+.appearance-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.toggle-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--maroon-deep);
+}
+
+.toggle-switch {
+  position: relative;
+  width: 52px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px solid var(--maroon);
+  background: var(--beige);
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s ease;
+}
+.toggle-switch .toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 1px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--maroon);
+  transition: transform 0.15s ease;
+}
+.toggle-switch[aria-checked="true"] {
+  background: var(--maroon-deep);
+}
+.toggle-switch[aria-checked="true"] .toggle-knob {
+  transform: translateX(24px);
+  background: var(--beige-light);
+}
+
+.theme-cycle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.cycle-arrow-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 2px solid var(--maroon);
+  border-radius: 4px;
+  color: var(--maroon);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.cycle-arrow-btn:hover {
+  background: var(--maroon);
+  color: var(--beige-light);
+}
+
+.cycle-value {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  min-width: 100px;
+  text-align: center;
+  color: var(--maroon-deep);
+}
+
+.toggle-pair {
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+}
+
+.toggle-pair-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.toggle-pair-item .settings-heading {
+  margin-bottom: 0.5rem;
+}
+
+.toggle-switch-onoff {
+  position: relative;
+  width: 66px;
+  height: 32px;
+  border-radius: 999px;
+  border: 2px solid var(--maroon);
+  background: var(--beige);
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  overflow: hidden;
+  transition: background 0.15s ease;
+}
+.toggle-switch-onoff .toggle-onoff-knob {
+  position: absolute;
+  top: 2px;
+  left: 1px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--maroon);
+  transition: transform 0.15s ease;
+  z-index: 2;
+}
+.toggle-switch-onoff[aria-checked="true"] {
+  background: var(--maroon-deep);
+}
+.toggle-switch-onoff[aria-checked="true"] .toggle-onoff-knob {
+  transform: translateX(34px);
+  background: var(--beige-light);
+}
+.toggle-onoff-text {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.toggle-onoff-text-off {
+  right: 10px;
+  color: var(--maroon);
+}
+.toggle-onoff-text-on {
+  left: 10px;
+  color: var(--beige-light);
+}
+.toggle-switch-onoff[aria-checked="false"] .toggle-onoff-text-off {
+  opacity: 1;
+}
+.toggle-switch-onoff[aria-checked="true"] .toggle-onoff-text-on {
+  opacity: 1;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.settings-heading-inline {
+  margin: 0;
+  text-align: left;
+}
+
+.yesno-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 2px solid var(--maroon);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+}
+
+.yesno-btn {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.1rem;
+  border: none;
+  background: transparent;
+  color: var(--maroon-deep);
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+.yesno-btn:hover {
+  opacity: 0.8;
+}
+.yesno-btn.active {
+  opacity: 1;
+  color: var(--maroon);
+  font-weight: 600;
+}
+
+.yesno-divider {
+  color: var(--maroon);
+  opacity: 0.4;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+/* #game-screen.dark-mode #sidebar .move-count-sidebar {
+  color: var(--maroon-deep);
+} */
+
+/* --- Scoreboard (Keep Score / Show Captures / Show Moves settings) --- */
+
+.scoreboard {
+  background: rgba(244, 239, 225, 0.08);
+  border-radius: 8px;
+  padding: 0.9rem 1rem 0.7rem;
+  margin: -0.4rem 0 0.6rem;
+}
+
+.scoreboard-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.scoreboard-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.scoreboard-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--beige-light);
+  opacity: 0.7;
+}
+
+.scoreboard-value {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--beige-light);
+  line-height: 1;
+}
+
+.scoreboard-captures {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--beige-light);
+  opacity: 0.5;
+}
+
+.scoreboard-divider {
+  height: 1px;
+  background: rgba(244, 239, 225, 0.25);
+  margin: 0 0 0.45rem;
+}
+
+.scoreboard-reset-btn {
+  display: block;
+  margin: 0 0 0 auto;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--beige-light);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.scoreboard-reset-btn:hover {
+  opacity: 0.9;
+}
+
+#game-screen.dark-mode #sidebar .scoreboard {
+  background: rgba(92, 43, 43, 0.08);
+}
+#game-screen.dark-mode #sidebar .scoreboard-label,
+#game-screen.dark-mode #sidebar .scoreboard-value,
+#game-screen.dark-mode #sidebar .scoreboard-captures,
+#game-screen.dark-mode #sidebar .scoreboard-reset-btn {
+  color: var(--maroon-deep);
+}
+#game-screen.dark-mode #sidebar .scoreboard-divider {
+  background: rgba(92, 43, 43, 0.2);
+}
+
+/* --- Dark mode (Appearance setting) ---
+   Scoped to #game-screen so it only ever swaps the sidebar/background
+   surfaces described in the settings panel - it never touches the
+   landing/mode-select screens or the board/piece theme colours, which
+   are handled separately by ACTIVE_THEME in theme.js. */
+
+#game-screen.dark-mode #sidebar {
+  background: var(--beige-light);
+  color: var(--maroon-deep);
+}
+#game-screen.dark-mode #sidebar .turn-indicator {
+  color: var(--maroon-deep);
+  background: rgba(92, 43, 43, 0.1);
+}
+#game-screen.dark-mode #sidebar .sidebar-divider {
+  background: rgba(92, 43, 43, 0.2);
+}
+#game-screen.dark-mode #sidebar .btn-sidebar {
+  color: var(--maroon-deep);
+  border-color: rgba(92, 43, 43, 0.4);
+}
+#game-screen.dark-mode #sidebar .btn-sidebar:hover,
+#game-screen.dark-mode #sidebar .btn-sidebar.active {
+  background: var(--maroon-deep);
+  color: var(--beige-light);
+  border-color: var(--maroon-deep);
+}
+#game-screen.dark-mode #canvas-container {
+  background: var(--maroon);
+}

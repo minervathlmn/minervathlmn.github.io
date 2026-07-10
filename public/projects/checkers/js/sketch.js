@@ -4,10 +4,12 @@
  * a rules concern). Every actual decision ("is this move legal", "whose
  * turn is it") is delegated to Game.
  */
-const CELLSIZE = 77;
+const BASE_CELLSIZE = 77; // desktop/default cell size, used as an upper cap
+let CELLSIZE = BASE_CELLSIZE;
 const CHAIN_PAUSE_MS = 150; // brief pause before an auto-continued jump
 
 let game;
+let p5Ready = false; // NEW
 
 // UI-only selection state - lives here, not in Game, since Game
 // shouldn't need to know or care what a human currently has clicked.
@@ -23,13 +25,53 @@ let animation = null;
 // auto-playing. { move, readyAt }
 let pendingAutoMove = null;
 
+/**
+ * Decides how big the board should be.
+ * - Narrow/portrait screens (width <= height, e.g. phones/tablets in
+ *   portrait): 90% of whichever of width/height is smaller, so the board
+ *   always fits on screen with a little breathing room.
+ * - Wide/landscape screens: fit within whatever space #canvas-container
+ *   actually has available (it already accounts for the sidebar), capped
+ *   at the original desktop size so it never grows huge on big monitors.
+ */
+function computeBoardSize() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  if (w <= h) {
+    return Math.floor(0.8 * Math.min(w, h));
+  }
+
+  const container = document.getElementById('canvas-container');
+  const availW = container ? container.clientWidth : w;
+  const availH = container ? container.clientHeight : h;
+  const fitted = Math.floor(0.9 * Math.min(availW, availH));
+  const maxSize = Board.BOARD_WIDTH * BASE_CELLSIZE;
+
+  return Math.min(fitted, maxSize);
+}
+
 function setup() {
   game = new Game();
 
-  const size = Board.BOARD_WIDTH * CELLSIZE;
+  const size = computeBoardSize();
+  CELLSIZE = size / Board.BOARD_WIDTH;
   const cnv = createCanvas(size, size);
   cnv.parent('canvas-container');
   noStroke();
+
+  p5Ready = true;      // NEW
+  tryStartGame();       // NEW
+}
+
+/** p5 special function - called automatically whenever the browser
+ * window resizes. Recomputes the board size/CELLSIZE and resizes the
+ * canvas to match; draw() keeps looping so the board redraws at the
+ * new scale on the very next frame. */
+function windowResized() {
+  const size = computeBoardSize();
+  CELLSIZE = size / Board.BOARD_WIDTH;
+  resizeCanvas(size, size);
 }
 
 function draw() {
@@ -194,15 +236,6 @@ function onAnimationComplete(finished) {
     selectedCell = game.chainCell;
     legalMovesForSelected = chainMoves;
   }
-}
-
-function hexToRgb(hex) {
-  const n = parseInt(hex.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-
-function easeInOutQuad(t) {
-  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 }
 
 function drawGameOverMessage() {
