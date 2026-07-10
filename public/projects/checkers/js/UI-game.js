@@ -8,10 +8,7 @@ let selectedDifficulty = null;  // 'beginner' | 'intermediate' | 'advanced'
 let autoHints = false;
 let manualHintActive = false;
 let moveCount = { dark: 0, light: 0 };
-let score = {
-  dark: parseInt(sessionStorage.getItem('checkers-score-dark'), 10) || 0,
-  light: parseInt(sessionStorage.getItem('checkers-score-light'), 10) || 0,
-};
+let score = { dark: 0, light: 0 }; // loaded per-mode in loadScore(), called from startGame()
 let captures = { dark: 0, light: 0 };
 let gameOverScored = false;
 
@@ -62,6 +59,7 @@ function startGame() {
   autoHints = selectedMode === '1p' && selectedDifficulty === 'beginner';
   applyModeDefaults();
 
+  loadScore();
   moveCount = { dark: 0, light: 0 };
   captures = { dark: 0, light: 0 };
   gameOverScored = false;
@@ -203,9 +201,24 @@ function bindScoreboard() {
   });
 }
 
+// Score is tracked separately per mode (and per difficulty within 1P) so
+// switching modes doesn't clobber or inherit another mode's tally.
+function scoreStorageKey() {
+  return selectedMode === '1p' ? `1p-${selectedDifficulty}` : '2p';
+}
+
+function loadScore() {
+  const key = scoreStorageKey();
+  score = {
+    dark: parseInt(sessionStorage.getItem(`checkers-score-dark-${key}`), 10) || 0,
+    light: parseInt(sessionStorage.getItem(`checkers-score-light-${key}`), 10) || 0,
+  };
+}
+
 function saveScore() {
-  sessionStorage.setItem('checkers-score-dark', score.dark);
-  sessionStorage.setItem('checkers-score-light', score.light);
+  const key = scoreStorageKey();
+  sessionStorage.setItem(`checkers-score-dark-${key}`, score.dark);
+  sessionStorage.setItem(`checkers-score-light-${key}`, score.light);
 }
 
 function scoreboardLabels() {
