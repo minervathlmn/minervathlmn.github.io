@@ -1,0 +1,151 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  tags: string[];
+  githubHref?: string;
+  demoHref?: string;
+  image?: string;
+  imageAlt?: string;
+}
+
+const { title, description, tags, githubHref, demoHref, image, imageAlt } = Astro.props;
+---
+
+<article class="project-card">
+  <div class="thumb">
+    {image ? (
+      <img src={image} alt={imageAlt ?? `${title} screenshot`} loading="lazy" />
+    ) : (
+      <span>PROJECT SCREENSHOT</span>
+    )}
+  </div>
+
+  <div class="body">
+    <h3>{title}</h3>
+    <p>{description}</p>
+
+    <ul class="tags">
+      {tags.map((tag) => (
+        <li>{tag}</li>
+      ))}
+    </ul>
+
+    <div class="links">
+      {githubHref && (
+        <a href={githubHref} target="_blank" rel="noreferrer">Code &rarr;</a>
+      )}
+      {demoHref && (
+        <a href={demoHref} target="_blank" rel="noreferrer">Live demo &rarr;</a>
+      )}
+    </div>
+  </div>
+</article>
+
+<style>
+  .project-card {
+    border: 1px solid var(--beige-deep);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--beige);
+    transition: border-color 0.15s ease;
+  }
+
+  .project-card:hover {
+    border-color: var(--maroon-soft);
+  }
+
+  .thumb {
+    aspect-ratio: 16 / 10;
+    background: repeating-linear-gradient(
+      45deg,
+      var(--beige-deep),
+      var(--beige-deep) 10px,
+      var(--beige) 10px,
+      var(--beige) 20px
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .thumb span {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: var(--maroon-soft);
+    background: var(--beige);
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--maroon-soft);
+    border-radius: 4px;
+  }
+
+  .body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex: 1;
+  }
+
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--maroon);
+    margin: 0;
+  }
+
+  .body p {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--ink);
+    opacity: 0.85;
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .tags {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tags li {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--maroon);
+    border: 1px solid var(--maroon-soft);
+    border-radius: 999px;
+    padding: 0.25rem 0.7rem;
+  }
+
+  .links {
+    margin-top: auto;
+    display: flex;
+    gap: 1.25rem;
+    padding-top: 0.5rem;
+  }
+
+  .links a {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--green);
+  }
+
+  .links a:hover {
+    color: var(--green-dark);
+  }
+</style>

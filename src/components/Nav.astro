@@ -1,0 +1,81 @@
+---
+interface Props {
+  active?: 'home' | 'about' | 'projects' | 'resume';
+}
+
+const { active = 'home' } = Astro.props;
+
+const links = [
+  { key: 'home', label: 'Home', href: '/' },
+  { key: 'about', label: 'About', href: '/about' },
+  { key: 'projects', label: 'Projects', href: '/projects' },
+  { key: 'resume', label: 'Resume', href: '/resume' },
+] as const;
+---
+
+<header class="nav">
+  <a class="logo" href="/">ML</a>
+  <nav class="links" aria-label="Primary">
+    {links.map((link) => (
+      <a href={link.href} class={link.key === active ? 'active' : ''}>{link.label}</a>
+    ))}
+  </nav>
+</header>
+
+<style>
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 1.75rem var(--section-pad);
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--maroon);
+    letter-spacing: 0.02em;
+  }
+
+  .links {
+    display: flex;
+    gap: 2rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .links a {
+    color: var(--ink);
+    opacity: 0.6;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid transparent;
+    transition: opacity 0.15s ease, border-color 0.15s ease;
+  }
+
+  .links a:hover {
+    opacity: 1;
+  }
+
+  .links a.active {
+    opacity: 1;
+    color: var(--maroon);
+    border-bottom-color: var(--maroon);
+  }
+
+  @media (max-width: 640px) {
+    .nav {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .links {
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+  }
+</style>
