@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Checkers</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Landing screen -->
+  <section id="landing-screen" class="screen">
+    <h1 class="title">CHECKERS</h1>
+    <div class="landing-actions">
+      <button id="play-btn" class="btn btn-primary">Play</button>
+      <button id="rules-btn" class="btn btn-secondary">Rules</button>
+    </div>
+  </section>
+
+  <!-- Mode / difficulty select -->
+  <section id="mode-select-screen" class="screen hidden">
+    <h2 class="subtitle">Choose a mode</h2>
+    <div class="mode-actions">
+      <button id="one-player-btn" class="btn btn-primary">1 Player</button>
+      <button id="two-player-btn" class="btn btn-primary">2 Players</button>
+    </div>
+
+    <div id="difficulty-select" class="difficulty-panel hidden">
+      <p class="eyebrow">Difficulty</p>
+      <div class="difficulty-actions">
+        <button class="btn btn-outline" data-difficulty="beginner">Beginner</button>
+        <button class="btn btn-outline" data-difficulty="intermediate">Intermediate</button>
+        <button class="btn btn-outline" data-difficulty="advanced">Advanced</button>
+      </div>
+    </div>
+
+    <button id="mode-back-btn" class="btn btn-text">Back</button>
+  </section>
+
+  <!-- Game screen: sidebar + board -->
+  <section id="game-screen" class="hidden">
+    <aside id="sidebar">
+      <h2 class="sidebar-title">Checkers</h2>
+
+      <p id="turn-indicator" class="turn-indicator"></p>
+
+      <div id="sidebar-scoreboard-wrap" class="hidden">
+        <div class="scoreboard">
+          <div id="scoreboard-tally-row" class="scoreboard-row">
+            <div class="scoreboard-col">
+              <span id="scoreboard-you-label" class="scoreboard-label">You</span>
+              <span id="scoreboard-you-score" class="scoreboard-value">0</span>
+              <span id="scoreboard-you-captures" class="scoreboard-captures">0 captured</span>
+              <span id="scoreboard-you-moves" class="scoreboard-captures">0 moved</span>
+            </div>
+            <div class="scoreboard-col">
+              <span id="scoreboard-bot-label" class="scoreboard-label">Bot</span>
+              <span id="scoreboard-bot-score" class="scoreboard-value">0</span>
+              <span id="scoreboard-bot-captures" class="scoreboard-captures">0 captured</span>
+              <span id="scoreboard-bot-moves" class="scoreboard-captures">0 moved</span>
+            </div>
+          </div>
+          <div id="scoreboard-divider" class="scoreboard-divider"></div>
+          <button id="scoreboard-reset-btn" class="scoreboard-reset-btn">&#8630; Reset Score</button>
+        </div>
+        <div class="sidebar-divider"></div>
+      </div>
+
+      <button id="undo-btn" class="btn btn-sidebar">Undo</button>
+      <button id="hint-btn" class="btn btn-sidebar">Hint</button>
+
+      <div class="sidebar-spacer"></div>
+
+      <button id="restart-btn" class="btn btn-sidebar">Start Over</button>
+      <button id="sidebar-home-btn" class="btn btn-sidebar">Home</button>
+      <button id="sidebar-rules-btn" class="btn btn-sidebar">Rules</button>
+
+      <div class="sidebar-divider"></div>
+
+      <button id="settings-btn" class="btn btn-sidebar">Settings</button>
+    </aside>
+
+    <div id="canvas-container"></div>
+  </section>
+
+  <!-- Rules modal -->
+  <div id="rules-modal" class="modal hidden">
+    <div class="modal-content">
+
+      <button id="close-rules-btn" class="modal-close" aria-label="Close">&times;</button>
+
+      <div id="rules-view">
+        <h2 class="subtitle">How to Play?</h2>
+        <ul class="rules-list">
+          <li>Pieces move diagonally, one square at a time, toward the opponent's edge of the board.</li>
+          <li>If an opponent's piece sits diagonally adjacent with an empty square behind it, you must jump and capture it.</li>
+          <li>Capturing is mandatory: if any jump is available, you must take a jump rather than a plain step.</li>
+          <li>A piece that reaches the far row is crowned a king and can then move diagonally in any direction.</li>
+          <li>A player wins when their opponent has no pieces left or no legal move available.</li>
+        </ul>
+        <button id="watch-demo-btn" class="btn btn-text">&#9654; Watch a quick demo instead</button>
+      </div>
+
+      <div id="demo-view" class="hidden">
+        <h2 class="subtitle">Quick Tutorial</h2>
+        <p id="demo-scene-label" class="demo-scene-label">"demo label"</p>
+        <div id="demo-canvas-container"></div>
+        <button id="read-rules-btn" class="btn btn-text">Read the rules instead</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content">
+      <button id="close-settings-btn" class="modal-close" aria-label="Close">&times;</button>
+      <h2 class="subtitle">Options</h2>
+
+      <div class="settings-section">
+        <p class="settings-heading">Appearance</p>
+        <div class="appearance-toggle">
+          <span class="toggle-label">Light</span>
+          <button id="dark-mode-toggle" class="toggle-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode">
+            <span class="toggle-knob"></span>
+          </button>
+          <span class="toggle-label">Dark</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <p class="settings-heading">Theme</p>
+        <div class="theme-cycle">
+          <button id="theme-prev-btn" class="cycle-arrow-btn" aria-label="Previous theme">&#10094;</button>
+          <span id="theme-name-label" class="cycle-value">Default</span>
+          <button id="theme-next-btn" class="cycle-arrow-btn" aria-label="Next theme">&#10095;</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="toggle-pair">
+          <div class="toggle-pair-item">
+            <p class="settings-heading">Undo</p>
+            <button id="undo-enabled-toggle" class="toggle-switch-onoff" role="switch" aria-checked="true" aria-label="Toggle undo availability">
+              <span class="toggle-onoff-knob"></span>
+              <span class="toggle-onoff-text toggle-onoff-text-off">OFF</span>
+              <span class="toggle-onoff-text toggle-onoff-text-on">ON</span>
+            </button>
+          </div>
+          <div class="toggle-pair-item">
+            <p class="settings-heading">Hint</p>
+            <button id="hint-enabled-toggle" class="toggle-switch-onoff" role="switch" aria-checked="true" aria-label="Toggle hint availability">
+              <span class="toggle-onoff-knob"></span>
+              <span class="toggle-onoff-text toggle-onoff-text-off">OFF</span>
+              <span class="toggle-onoff-text toggle-onoff-text-on">ON</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section settings-row">
+        <p class="settings-heading settings-heading-inline">Keep Score</p>
+        <div class="yesno-toggle" data-setting="keep-score" role="radiogroup" aria-label="Keep score">
+          <button class="yesno-btn" data-value="true">Yes</button>
+          <span class="yesno-divider">/</span>
+          <button class="yesno-btn" data-value="false">No</button>
+        </div>
+      </div>
+
+      <div class="settings-section settings-row">
+        <p class="settings-heading settings-heading-inline">Show Captures</p>
+        <div class="yesno-toggle" data-setting="show-captures" role="radiogroup" aria-label="Show captures">
+          <button class="yesno-btn" data-value="true">Yes</button>
+          <span class="yesno-divider">/</span>
+          <button class="yesno-btn" data-value="false">No</button>
+        </div>
+      </div>
+
+      <div class="settings-section settings-row">
+        <p class="settings-heading settings-heading-inline">Show Moves</p>
+        <div class="yesno-toggle" data-setting="show-moves" role="radiogroup" aria-label="Show moves">
+          <button class="yesno-btn" data-value="true">Yes</button>
+          <span class="yesno-divider">/</span>
+          <button class="yesno-btn" data-value="false">No</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/Cell.js"></script>
+  <script src="js/Move.js"></script>
+  <script src="js/Piece.js"></script>
+  <script src="js/Board.js"></script>
+  <script src="js/GameLogic.js"></script>
+  <script src="js/Bot.js"></script>
+  <script src="js/sketch.js"></script>
+  <script src="js/DemoReplay.js"></script>
+  <script src="js/UI.js"></script>
+</body>
+</html>
