@@ -1,0 +1,206 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+
+const skills = ['Python', 'Java', 'C', 'SQL', 'R', 'HTML', 'CSS', 'Git', 'Bash', 'Assembly'];
+
+const facts = [
+  { label: 'Based in', value: 'Sydney, Australia' },
+  { label: 'Studying', value: 'B. Advanced Computing' },
+  { label: 'Major', value: 'Computer Science & Computational Data Science' },
+  { label: 'Currently', value: 'Seeking internships' },
+];
+---
+
+<Layout title="Minerva Limina — About">
+  <Nav active="about" />
+
+  <section class="intro">
+    <p class="eyebrow">About</p>
+    <h1>The story so far.</h1>
+    <p class="lede">
+    </p>
+  </section>
+
+  <section class="split">
+    <div class="bio">
+      <h2>My Journey</h2>
+      <p>
+        Hi there! I'm an international undergraduate student at the University of Sydney, currently pursuing a Bachelor of Computing with a major in Computer Science and Computational Data Science.
+      </p>
+      <p>
+        I'm passionate about turning ideas into code and finding creative solutions to complex problems. Through my coursework, I've had the chance to work on some pretty cool projects, from building interactive games like checkers and tank games using Java Processing, to developing practical tools like a currency converter, and even creating an assembler emulator for assembly language using Python.
+      </p>
+      <h2>What Drives Me</h2>
+      <p>
+        What I love most about programming is that moment when everything clicks and your code finally does exactly what you envisioned. Whether I'm debugging a tricky algorithm or designing a user interface, I approach each challenge with curiosity and persistence.
+      </p>
+      <h2>Career Goals</h2>
+      <p>
+        I'm currently seeking internship opportunities where I can apply my technical skills in real-world projects, learn from experienced developers, and contribute to meaningful work. I'm particularly interested in roles that combine my interests in software development and data science.
+      </p>
+      <h2>Beyond Coding</h2>
+      <p>
+        When I'm not coding, you can find me exploring Sydney, diving into games like Mobile Legends and Roblox, or working on small desktop projects that catch my interest. My love for gaming actually fuels my passion for development. There's something fascinating about understanding how the experiences I enjoy playing are built from the ground up.
+      </p>
+    </div>
+
+    <dl class="facts">
+      {facts.map((fact) => (
+        <div class="fact">
+          <dt>{fact.label}</dt>
+          <dd>{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+
+  <section class="skills">
+    <p class="section-label">Skills & tools</p>
+    <ul class="pill-row">
+      {skills.map((skill) => (
+        <li class="pill">{skill}</li>
+      ))}
+    </ul>
+  </section>
+</Layout>
+
+<style>
+  section {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 var(--section-pad);
+  }
+
+  .intro {
+    padding-top: clamp(2.5rem, 6vw, 4rem);
+    padding-bottom: 2rem;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--maroon-soft);
+    margin: 0 0 1rem;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--maroon);
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    line-height: 1.05;
+    margin: 0 0 1.25rem;
+  }
+
+  .lede {
+    font-family: var(--font-body);
+    font-size: 1.15rem;
+    max-width: 48ch;
+    color: var(--ink);
+  }
+
+  .split {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: clamp(2rem, 6vw, 4rem);
+    padding-top: 2rem;
+    padding-bottom: clamp(3rem, 6vw, 4rem);
+    border-top: 1px solid var(--beige-deep);
+  }
+
+  .bio p {
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--ink);
+    margin: 0 0 1.25rem;
+  }
+
+  .facts {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin: 0;
+  }
+
+  .fact dt {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--maroon-soft);
+    margin-bottom: 0.35rem;
+  }
+
+  .fact dd {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--ink);
+    margin: 0;
+    white-space: pre-line;
+  }
+
+  .skills {
+    padding-top: clamp(2.5rem, 5vw, 3.5rem);
+    padding-bottom: clamp(2.5rem, 5vw, 3.5rem);
+    border-top: 1px solid var(--beige-deep);
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--maroon-soft);
+    margin: 0 0 1.25rem;
+  }
+
+  .pill-row {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  .pill {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    border: 1px solid var(--maroon-soft);
+    color: var(--maroon);
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+  }
+
+  .highlight {
+    padding-top: clamp(2.5rem, 5vw, 3.5rem);
+    padding-bottom: clamp(3.5rem, 7vw, 5rem);
+    border-top: 1px solid var(--beige-deep);
+  }
+
+  .highlight h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    color: var(--maroon);
+    margin: 0 0 0.75rem;
+  }
+
+  .highlight p {
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    color: var(--ink);
+    max-width: 60ch;
+    margin: 0;
+  }
+
+  @media (max-width: 720px) {
+    .split {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
