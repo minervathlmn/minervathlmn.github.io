@@ -1,0 +1,157 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+
+// Placeholder data — replace with your real projects.
+// title, description, tags (tech used), and either/both links are optional.
+const projects = [
+  {
+    title: 'Tank Game',
+    description:
+      'An interactive tank battle game built using Java Processing. Features include collision detection, multiple game mechanics, and smooth gameplay controls. This project demonstrates my understanding of object-oriented programming and game development principles.',
+    tags: ['Java', 'Processing'],
+    githubHref: 'https://github.com/minervathlmn/tank_game',
+    demoHref: 'https://example.com',
+    // image: '/projects/tank-game.png',
+  },
+  {
+    title: 'Checkers',
+    description:
+      'A complete implementation of the classic checkers game with an AI opponent. Built using Java Processing, this project showcases my skills in game logic, AI implementation, and user interface design.',
+    tags: ['Java', 'Processing'],
+    githubHref: 'https://github.com/minervathlmn/checkers',
+    // demoHref: '/projects/checkers/index.html',
+    // image: '/projects/checkers-game.png',
+  },
+  {
+    title: 'Mouse Game',
+    description:
+      '[One or two sentences on what it does, the problem it solves, and any interesting technical decisions you made.]',
+    tags: ['Python'],
+    githubHref: 'https://github.com/',
+    // demoHref: '/projects/mouse/index.html',
+    // image: '/projects/mouse-game.gif',
+  },
+  {
+    title: '(Improved) Mouse Game',
+    description:
+      '[One or two sentences on what it does, the problem it solves, and any interesting technical decisions you made.]',
+    tags: ['Python'],
+    githubHref: 'https://github.com/',
+    // demoHref: '/projects/mouse_plus/index.html',
+    // image: '/projects/improved-mouse-game.gif',
+  },
+  {
+    title: 'Currency Converter',
+    description:
+      'A practical currency conversion tool that fetches real-time exchange rates from APIs. This project demonstrates my ability to work with external APIs, handle data processing, and create user-friendly applications.',
+    tags: ['Python'],
+    githubHref: 'https://github.com/minervathlmn/currency_converter',
+    // demoHref: undefined,
+    // image: '/projects/currency-converter.gif',
+  },
+  {
+    title: 'Assembler Emulator',
+    description:
+      'An educational assembler emulator built in Python that helps understand assembly language concepts. This project demonstrates my understanding of low-level programming concepts and system architecture.',
+    tags: ['Python'],
+    githubHref: 'https://github.com/',
+    // demoHref: undefined,
+    // image: '/projects/assembler-emulator.gif',
+  },
+  {
+    title: 'Desktop Reminder',
+    description:
+      '[One or two sentences on what it does, the problem it solves, and any interesting technical decisions you made.]',
+    tags: ['Python'],
+    githubHref: 'https://github.com/',
+    // demoHref: '/projects/reminder/index.html',
+    // image: '/projects/desktop-reminder.gif',
+  },
+];
+---
+
+<Layout title="Projects — Minerva Limina">
+  <Nav active="projects" />
+
+  <section class="intro">
+    <p class="eyebrow">Projects</p>
+    <h1>What I've been building.</h1>
+    <p class="lede">
+      A mix of coursework, personal experiments, and things I built because I wanted to understand how they worked.
+    </p>
+  </section>
+
+  <section class="grid">
+    {projects.map((project) => (
+      <ProjectCard
+        title={project.title}
+        description={project.description}
+        tags={project.tags}
+        githubHref={project.githubHref}
+        demoHref={project.demoHref}
+        image={project.image}
+      />
+    ))}
+  </section>
+</Layout>
+
+<style>
+  section {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 var(--section-pad);
+  }
+
+  .intro {
+    padding-top: clamp(2.5rem, 6vw, 4rem);
+    padding-bottom: 2rem;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--maroon-soft);
+    margin: 0 0 1rem;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--maroon);
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    line-height: 1.05;
+    margin: 0 0 1.25rem;
+  }
+
+  .lede {
+    font-family: var(--font-body);
+    font-size: 1.15rem;
+    max-width: 48ch;
+    color: var(--ink);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.75rem;
+    padding-top: 2rem;
+    padding-bottom: clamp(3.5rem, 7vw, 5rem);
+    border-top: 1px solid var(--beige-deep);
+  }
+
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
