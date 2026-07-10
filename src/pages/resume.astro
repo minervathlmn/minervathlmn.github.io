@@ -1,0 +1,199 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+
+const skills = ['Python', 'Java', 'C', 'SQL', 'R', 'HTML', 'CSS', 'Git', 'Bash', 'Assembly'];
+
+const experience = [
+  {
+    org: 'Deloitte Australia',
+    role: 'Cybersecurity Job Simulation',
+    detail:
+      'Analysed web activity logs for a simulated cybersecurity investigation and presented findings via a Tableau dashboard and Excel analysis.',
+  },
+];
+
+const education = [
+  {
+    org: 'University of Sydney',
+    role: 'Bachelor of Computing',
+    detail: 'Majoring in Computer Science & Computational Data Science.',
+  },
+];
+---
+
+<Layout title="Resume — Minerva Limina">
+  <Nav active="resume" />
+
+  <section class="intro">
+    <p class="eyebrow">Resume</p>
+    <h1>Download my CV.</h1>
+    <p class="lede">
+      The full PDF has everything in detail — here's the short version.
+    </p>
+    <a class="btn-download" href="/resume.pdf" download>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 3v12m0 0-4-4m4 4 4-4" />
+        <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+      </svg>
+      Download CV (PDF)
+    </a>
+  </section>
+
+  <section class="block">
+    <p class="section-label">Education</p>
+    {education.map((item) => (
+      <div class="entry">
+        <h2>{item.role}</h2>
+        <p class="org">{item.org}</p>
+        <p class="detail">{item.detail}</p>
+      </div>
+    ))}
+  </section>
+
+  <section class="block">
+    <p class="section-label">Experience</p>
+    {experience.map((item) => (
+      <div class="entry">
+        <h2>{item.role}</h2>
+        <p class="org">{item.org}</p>
+        <p class="detail">{item.detail}</p>
+      </div>
+    ))}
+  </section>
+
+  <section class="block skills-block">
+    <p class="section-label">Skills & tools</p>
+    <ul class="pill-row">
+      {skills.map((skill) => (
+        <li class="pill">{skill}</li>
+      ))}
+    </ul>
+  </section>
+</Layout>
+
+<style>
+  section {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 var(--section-pad);
+  }
+
+  .intro {
+    padding-top: clamp(2.5rem, 6vw, 4rem);
+    padding-bottom: 2rem;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--maroon-soft);
+    margin: 0 0 1rem;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--maroon);
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    line-height: 1.05;
+    margin: 0 0 1.25rem;
+  }
+
+  .lede {
+    font-family: var(--font-body);
+    font-size: 1.15rem;
+    max-width: 48ch;
+    color: var(--ink);
+    margin: 0 0 2rem;
+  }
+
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    padding: 0.85rem 1.5rem;
+    border-radius: 6px;
+    background: var(--green);
+    color: var(--beige);
+    transition: background-color 0.15s ease, transform 0.1s ease;
+  }
+
+  .btn-download:hover {
+    background: var(--green-dark);
+    transform: translateY(-1px);
+  }
+
+  .block {
+    padding-top: clamp(2rem, 4vw, 2.5rem);
+    padding-bottom: clamp(2rem, 4vw, 2.5rem);
+    border-top: 1px solid var(--beige-deep);
+  }
+
+  .skills-block {
+    padding-bottom: clamp(3.5rem, 7vw, 5rem);
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--maroon-soft);
+    margin: 0 0 1.25rem;
+  }
+
+  .entry {
+    margin-bottom: 1.5rem;
+  }
+
+  .entry:last-child {
+    margin-bottom: 0;
+  }
+
+  .entry h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: var(--maroon);
+    margin: 0 0 0.25rem;
+  }
+
+  .org {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--maroon-soft);
+    margin: 0 0 0.5rem;
+  }
+
+  .detail {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--ink);
+    max-width: 60ch;
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .pill-row {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  .pill {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    border: 1px solid var(--maroon-soft);
+    color: var(--maroon);
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+  }
+</style>
