@@ -1,25 +1,27 @@
-/**
- * The referee. Owns the Board and whose turn it is, and decides what's
- * actually legal right now - including mandatory captures and multi-jump
- * chains. UI code talks to Game; Game is the only thing that talks to Board.
- */
-const MOVES_WITHOUT_ACTION_LIMIT = 40; // consecutive turns with no capture/promotion before it's a draw
+// checkers/js/GameLogic.js
 
+/** Number of moves without a capture or promotion before the game is a draw. */
+const MOVES_WITHOUT_ACTION_LIMIT = 40;
+
+/**
+ * Owns the full game state for a single checkers match: the board,
+ * whose turn it is, move history (for undo), and draw/win detection.
+ */
 class Game {
   constructor() {
     this.board = new Board();
     this.currentPlayer = 'dark';
-    this.chainCell = null;
+    this.chainCell = null;       // non-null while mid multi-jump, holds the jumping piece's cell
     this.gameStarted = false;
-    this.history = []; // stack of applied moves, for undo()
-    this.moveGroup = 0; // increments each time a new (non-chained) move sequence starts
-    this.movesSinceAction = 0; // consecutive turns (not elementary moves) with no capture/promotion
-    this.actionThisTurn = false; // did the in-progress turn/chain include a capture or promotion?
+    this.history = [];           // stack of applied moves, for undo
+    this.moveGroup = 0;          // groups a multi-jump chain into a single undoable unit
+    this.movesSinceAction = 0;   // moves since the last capture/promotion, for the draw rule
+    this.actionThisTurn = false; // whether the current turn has captured or promoted
   }
 
-  /** Populates the board with the standard starting position and marks
-   * the game as underway. Called once the player has picked 1P/2P (and
-   * difficulty, if applicable) from the mode-select screen. */
+  // ==== Lifecycle ====
+
+  /** Resets the board to the starting position and marks the game as started. */
   start() {
     this.board.reset();
     this.currentPlayer = 'dark';
@@ -31,27 +33,29 @@ class Game {
     this.actionThisTurn = false;
   }
 
-  /** Resets the board to the starting position without touching mode or
-   * difficulty - this is what the sidebar's "Start Over" button calls. */
+  /** Resets the board and state without changing `gameStarted`. */
   restart() {
     this.board.reset();
     this.currentPlayer = 'dark';
     this.chainCell = null;
     this.history = [];
-    this.moveGroup = 0; // increments each time a new (non-chained) move sequence starts
+    this.moveGroup = 0;
     this.movesSinceAction = 0;
     this.actionThisTurn = false;
   }
 
+  // ==== Move Queries ====
+
   /**
-   * All legal moves for the current player right now. If a jump is
-   * available anywhere for this player, only jumps are returned
-   * (mandatory capture rule). If a multi-jump chain is in progress,
-   * only moves for the chained piece are returned.
+   * Computes all legal moves for the current player, enforcing the
+   * checkers rules that captures are mandatory and that a piece mid
+   * multi-jump must continue jumping with that same piece.
+   * @returns {Move[]}
    */
   getLegalMoves() {
     let moves = [];
 
+    // Mid multi-jump: only further jumps from the same piece are legal
     if (this.chainCell !== null) {
       for (const m of this.board.getAvailableMoves(this.chainCell)) {
         if (m.isJump()) moves.push(m);
@@ -63,28 +67,27 @@ class Game {
       moves = moves.concat(this.board.getAvailableMoves(cell));
     }
 
+    // Capturing is mandatory: if any jump exists, only jumps are legal
     const anyJump = moves.some(m => m.isJump());
     if (anyJump) moves = moves.filter(m => m.isJump());
 
     return moves;
   }
 
-  /** Cells containing a piece of the current player that has at least
-   * one legal move right now (already respects mandatory-capture
-   * filtering and mid-chain restriction, since it's derived from
-   * getLegalMoves()). */
+  /** @returns {Set<Cell>} Cells holding a piece that has at least one legal move. */
   getMovablePieces() {
     const cells = new Set();
     for (const m of this.getLegalMoves()) cells.add(m.from);
     return cells;
   }
 
+  // ==== Move Application ====
+
   /**
-   * Applies a move that has already been checked against getLegalMoves().
-   * Handles multi-jump chaining, turn switching, and records enough to
-   * undo this single step later.
-   *
-   * @return true if the move was applied
+   * Applies a move if it's legal, updating the board, turn, chain-jump
+   * state, draw counter, and history.
+   * @param {Move} move
+   * @returns {boolean} Whether the move was legal and applied.
    */
   applyMove(move) {
     const legal = this.getLegalMoves();
@@ -96,13 +99,9 @@ class Game {
     const turnBefore = this.currentPlayer;
     const chainBefore = this.chainCell;
 
-    // A fresh (non-chained) move starts a new undo group; a move that
-    // continues an in-progress multi-jump chain stays in the same group,
-    // so the whole chain undoes as one unit.
+    // A new move group starts each turn, but continues through a jump chain
     if (chainBefore === null) this.moveGroup++;
 
-    // Snapshot draw-rule state at the start of a turn only, so undo can
-    // restore it in one shot when the whole group is popped.
     const movesSinceActionBefore = this.movesSinceAction;
     const actionThisTurnBefore = this.actionThisTurn;
 
@@ -116,12 +115,12 @@ class Game {
       movesSinceActionBefore, actionThisTurnBefore
     });
 
+    // Chain continues: same player must keep jumping with the same piece
     if (move.isJump() && this.hasFurtherJump(move.to)) {
       this.chainCell = move.to;
-      return true; // same player's turn continues
+      return true;
     }
 
-    // Turn (and any chain) is finalized - commit the draw counter.
     this.movesSinceAction = this.actionThisTurn ? 0 : this.movesSinceAction + 1;
     this.actionThisTurn = false;
 
@@ -130,14 +129,16 @@ class Game {
     return true;
   }
 
-  /** Reverses the entire most recent move sequence - a single step, or a
-   * full multi-jump chain if the last move was part of one - restoring
-   * the board back to how it looked right before that sequence began. */
+  /**
+   * Reverts the most recent move group (a full turn, including any
+   * multi-jump chain) as a single atomic undo step.
+   * @returns {boolean} Whether there was anything to undo.
+   */
   undo() {
     if (this.history.length === 0) return false;
 
     const targetGroup = this.history[this.history.length - 1].group;
-    let groupStart; // will end up holding the group's first (earliest-pushed) entry
+    let groupStart;
 
     while (this.history.length > 0 && this.history[this.history.length - 1].group === targetGroup) {
       const last = this.history.pop();
@@ -153,29 +154,33 @@ class Game {
 
       this.currentPlayer = turnBefore;
       this.chainCell = chainBefore;
-      groupStart = last; // popping newest-to-oldest, so the last one wins
+      groupStart = last;
     }
 
-    // groupStart is the move that began this turn/chain - its "before"
-    // snapshot is exactly the draw-rule state to roll back to.
     this.movesSinceAction = groupStart.movesSinceActionBefore;
     this.actionThisTurn = groupStart.actionThisTurnBefore;
 
     return true;
   }
 
+  /** @returns {boolean} Whether there's a move group available to undo. */
   canUndo() {
     return this.history.length > 0;
   }
 
+  // ==== Turn / State Helpers ====
+
+  /** @returns {boolean} Whether the piece on `from` has another jump available. */
   hasFurtherJump(from) {
     return this.board.getAvailableMoves(from).some(m => m.isJump());
   }
 
+  /** Flips the current player between 'light' and 'dark'. */
   switchTurn() {
     this.currentPlayer = (this.currentPlayer === 'light') ? 'dark' : 'light';
   }
 
+  /** @returns {boolean} Whether `colour` has no legal moves anywhere on the board. */
   hasNoLegalMoves(colour) {
     for (const cell of this.board.getCellsWithPiece(colour)) {
       if (this.board.getAvailableMoves(cell).length > 0) return false;
@@ -183,10 +188,12 @@ class Game {
     return true;
   }
 
+  /** @returns {boolean} Whether the draw rule (40 moves without a capture/promotion) has been hit. */
   isDraw() {
     return this.movesSinceAction >= MOVES_WITHOUT_ACTION_LIMIT;
   }
 
+  /** @returns {boolean} Whether the game has ended (win, no-moves loss, or draw). */
   isGameOver() {
     if (!this.gameStarted) return false;
     return this.board.countPieces('light') === 0
@@ -195,10 +202,11 @@ class Game {
       || this.isDraw();
   }
 
+  /** @returns {string|null} The winning colour, or null for a draw. */
   getWinner() {
     if (this.board.countPieces('light') === 0) return 'dark';
     if (this.board.countPieces('dark') === 0) return 'light';
-    if (this.isDraw()) return null; // no winner - Bot.js/UI should treat this as a draw, not a loss
-    return (this.currentPlayer === 'light') ? 'dark' : 'light'; // currentPlayer is stuck -> other side wins
+    if (this.isDraw()) return null;
+    return (this.currentPlayer === 'light') ? 'dark' : 'light';
   }
 }

@@ -1,10 +1,14 @@
+// checkers/js/theme.js
+
 /**
- * Board/piece colour palette. Only the "accented" theme is implemented,
- * matching the portfolio's beige/maroon/green design system. A "normal"
- * theme (black/white board, blue/red pieces) is a planned follow-up -
- * add it here as THEMES.normal and switch ACTIVE_THEME to wire up a
- * toggle later.
+ * Colour palette definitions for the checkers board.
+ * Each theme controls cell colours, piece colours/shadows, piece display
+ * names, and the highlight colours used for movable / selected /
+ * destination / forced-jump cells.
  */
+
+// ==== Theme Definitions ====
+
 const THEMES = {
   accented: {
     darkCell: '#a97c62',
@@ -15,10 +19,10 @@ const THEMES = {
     pieceDark: '#5c2b2b',
     pieceDarkShadow: '#3d1c1c',
     pieceDarkName: 'Maroon',
-    movable: '#8a9a5b',   // green - has a legal move
-    selected: '#e3b23c',   // yellow - currently selected piece
-    destination: '#b087a0', // purple - available destination
-    forceJump: '#c1440e',  // orange - mandatory capture destination
+    movable: '#8a9a5b',     // green  - piece has a legal move
+    selected: '#e3b23c',    // yellow - currently selected piece
+    destination: '#b087a0', // purple - available destination cell
+    forceJump: '#c1440e',   // orange - mandatory capture destination
   },
   pastel: {
     darkCell: '#b58863',
@@ -29,10 +33,10 @@ const THEMES = {
     pieceDark: '#4d4d4d',
     pieceDarkShadow: '#1a1a1a',
     pieceDarkName: 'Black',
-    movable: '#a3c98d',   // green - has a legal move
-    selected: '#f0e6a3',   // yellow - currently selected piece
-    destination: '#d2beeb', // purple - available destination
-    forceJump: '#e8a3a3',  // orange - mandatory capture destination
+    movable: '#a3c98d',
+    selected: '#f0e6a3',
+    destination: '#d2beeb',
+    forceJump: '#e8a3a3',
   },
   contrast: {
     darkCell: '#000000',
@@ -43,19 +47,26 @@ const THEMES = {
     pieceDark: '#f83157',
     pieceDarkShadow: '#c22447',
     pieceDarkName: 'Red',
-    movable: '#2ecc71',   // green - has a legal move
-    selected: '#ffdd00',   // yellow - currently selected piece
-    destination: '#9b59b6', // purple - available destination
-    forceJump: '#ff6a00',  // orange - mandatory capture destination
+    movable: '#2ecc71',
+    selected: '#ffdd00',
+    destination: '#9b59b6',
+    forceJump: '#ff6a00',
   },
 };
 
-// Cycle order + display labels for the Settings panel's theme selector.
+// ==== Theme Metadata ====
+
+/** Order in which themes are cycled through (e.g. via a settings toggle). */
 const THEME_ORDER = ['accented', 'pastel', 'contrast'];
+
+/** Human-readable labels for each theme, shown in the UI. */
 const THEME_DISPLAY_NAMES = {
   accented: 'Default',
   pastel: 'Pastel',
   contrast: 'Contrast',
 };
 
+// ==== Active Theme State ====
+
+/** The currently active theme object. Defaults to 'accented'. */
 let ACTIVE_THEME = THEMES.accented;

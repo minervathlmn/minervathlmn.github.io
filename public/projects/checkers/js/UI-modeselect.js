@@ -1,9 +1,13 @@
+// checkers/js/UI-modeselect.js
+
 /**
- * Mode/difficulty select page only. No game state lives here - this page's
- * only job is figuring out mode + difficulty and handing off to /game/
- * via the URL. The actual game (Board, GameLogic, etc.) has no idea this
- * page exists.
+ * DOM logic for the mode-select screen (checkers/play/index.html):
+ * lets the player choose 1P (then a difficulty) or 2P, and navigates
+ * to the game screen with the choice encoded in the URL query string.
  */
+
+// ==== Init ====
+
 function initUI() {
   bindModeSelectScreen();
 }
@@ -14,6 +18,9 @@ if (document.readyState === 'loading') {
   initUI();
 }
 
+// ==== Mode Select Screen ====
+
+/** Wires up the 1P/2P buttons, difficulty buttons, and back button. */
 function bindModeSelectScreen() {
   document.getElementById('one-player-btn').addEventListener('click', () => {
     document.getElementById('difficulty-select').classList.remove('hidden');

@@ -1,29 +1,40 @@
+// checkers/js/UI-game.js
+
 /**
- * Game page only: sidebar, scoreboard, settings, rules modal, and the bot
- * hook. Mode/difficulty arrive via the URL (?mode=1p&difficulty=advanced),
- * set by the mode-select page - this page never sets them itself.
+ * DOM/UI layer for the live game screen: mode setup, sidebar controls,
+ * scoreboard, rules & settings modals, dark mode/theme, and the bot's
+ * move scheduling. All p5-facing state (board, animation) lives in
+ * sketch.js; this file owns everything outside the canvas.
  */
-let selectedMode = null;        // '1p' | '2p'
-let selectedDifficulty = null;  // 'beginner' | 'intermediate' | 'advanced'
+
+// ==== State ====
+
+let selectedMode = null;
+let selectedDifficulty = null;
 let autoHints = false;
 let manualHintActive = false;
 let moveCount = { dark: 0, light: 0 };
-let score = { dark: 0, light: 0 }; // loaded per-mode in loadScore(), called from startGame()
+let score = { dark: 0, light: 0 };
 let captures = { dark: 0, light: 0 };
-let gameOverScored = false;
+let gameOverScored = false; // guards against double-counting a win once the game ends
 
+// Persisted across visits (localStorage)
 let darkModeOn = localStorage.getItem('checkers-dark-mode') === 'true';
 let themeIndex = Math.max(0, THEME_ORDER.indexOf(localStorage.getItem('checkers-theme')));
 ACTIVE_THEME = THEMES[THEME_ORDER[themeIndex]];
 
+// Persisted per-tab only (sessionStorage) - reset defaults are applied per mode/difficulty
 let undoSettingEnabled = sessionStorage.getItem('checkers-undo-enabled') !== 'false';
 let hintSettingEnabled = sessionStorage.getItem('checkers-hint-enabled') !== 'false';
 let keepScoreEnabled = sessionStorage.getItem('checkers-keep-score') === 'true';
 let showCapturesEnabled = sessionStorage.getItem('checkers-show-captures') === 'true';
 let showMovesEnabled = sessionStorage.getItem('checkers-show-moves') === 'true';
 
-let domReady = false; // NEW - see tryStartGame()
+let domReady = false;
 
+// ==== Init ====
+
+/** Reads mode/difficulty from the URL, wires up all UI event listeners, and attempts to start the game. */
 function initUI() {
   const params = new URLSearchParams(location.search);
   selectedMode = params.get('mode');
@@ -36,8 +47,8 @@ function initUI() {
   bindRulesModal();
   bindSettingsModal();
 
-  domReady = true;   // NEW
-  tryStartGame();    // NEW
+  domReady = true;
+  tryStartGame();
 }
 
 if (document.readyState === 'loading') {
@@ -46,15 +57,19 @@ if (document.readyState === 'loading') {
   initUI();
 }
 
-// NEW - only fires once both the DOM bindings above AND p5's setup()
-// (which creates `game`) have completed, in whichever order they happen
-// to finish. Same shape as the DOMContentLoaded/millis race you already
-// fixed in DemoReplay.js.
+// ==== Game Start ====
+
+/**
+ * Starts the game once both the DOM and the p5 sketch are ready.
+ * Called from both initUI() and sketch.js's setup(), since either
+ * one might finish loading first.
+ */
 function tryStartGame() {
   if (!domReady || !p5Ready) return;
   startGame();
 }
 
+/** Applies mode defaults, resets counters, and starts a fresh Game. */
 function startGame() {
   autoHints = selectedMode === '1p' && selectedDifficulty === 'beginner';
   applyModeDefaults();
@@ -70,6 +85,11 @@ function startGame() {
   updateMoveCountUI();
 }
 
+/**
+ * Sets undo/hint/scoreboard visibility defaults based on difficulty:
+ * beginner and intermediate get more assistance (undo, hints) but no
+ * scoreboard; advanced and 2-player get the reverse.
+ */
 function applyModeDefaults() {
   const isBeginner = selectedMode === '1p' && selectedDifficulty === 'beginner';
   const isIntermediate = selectedMode === '1p' && selectedDifficulty === 'intermediate';
@@ -88,40 +108,9 @@ function applyModeDefaults() {
   updateSettingsUI();
 }
 
-function updateSidebarForMode() {
-  const undoBtn = document.getElementById('undo-btn');
-  const hintBtn = document.getElementById('hint-btn');
+// ==== Sidebar ====
 
-  undoBtn.classList.toggle('hidden', !undoSettingEnabled);
-  hintBtn.classList.toggle('hidden', !hintSettingEnabled);
-  hintBtn.classList.toggle('active', manualHintActive);
-
-  updateScoreboardUI();
-}
-
-function incrementMoveCount(colour) {
-  moveCount[colour] = moveCount[colour || 0] + 1;
-  updateMoveCountUI();
-}
-
-function updateMoveCountUI() {
-  updateScoreboardUI();
-}
-
-function updateTurnIndicator() {
-  const el = document.getElementById('turn-indicator');
-  if (!el) return;
-
-  if (selectedMode === '1p') {
-    const DIFFICULTY_LABELS = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' };
-    el.textContent = `Level: ${DIFFICULTY_LABELS[selectedDifficulty] ?? selectedDifficulty}`;
-  } else {
-    el.textContent = game.currentPlayer === 'dark' ? `${ACTIVE_THEME.pieceDarkName}'s Turn` : `${ACTIVE_THEME.pieceLightName}'s Turn`;
-  }
-}
-
-// --- Sidebar ---------------------------------------------------------
-
+/** Wires up all sidebar buttons: drawer toggle, undo, hint, restart, home, rules, settings. */
 function bindSidebar() {
   document.getElementById('sidebar-toggle-btn').addEventListener('click', toggleSidebarDrawer);
   document.getElementById('sidebar-backdrop').addEventListener('click', closeSidebarDrawer);
@@ -140,6 +129,7 @@ function bindSidebar() {
 
     if (!game.canUndo()) return;
 
+    // If the game had already ended and been scored, undo needs to reverse that score too
     if (gameOverScored) {
       const winner = game.getWinner();
       score[winner] = Math.max(0, score[winner] - 1);
@@ -150,6 +140,7 @@ function bindSidebar() {
     const lastMover = game.history[game.history.length - 1].turnBefore;
     game.undo();
 
+    // In 1P mode, undoing a bot move should also undo the player's move that preceded it
     if (selectedMode === '1p' && lastMover === 'light' && game.canUndo()) {
       game.undo();
     }
@@ -191,8 +182,48 @@ function closeSidebarDrawer() {
   document.getElementById('sidebar-backdrop').classList.remove('visible');
 }
 
-// --- Scoreboard --------------------------------------------------------
+/** Shows/hides the undo and hint buttons per their settings, and refreshes the scoreboard. */
+function updateSidebarForMode() {
+  const undoBtn = document.getElementById('undo-btn');
+  const hintBtn = document.getElementById('hint-btn');
 
+  undoBtn.classList.toggle('hidden', !undoSettingEnabled);
+  hintBtn.classList.toggle('hidden', !hintSettingEnabled);
+  hintBtn.classList.toggle('active', manualHintActive);
+
+  updateScoreboardUI();
+}
+
+// ==== Turn Indicator / Move Count ====
+
+/**
+ * @param {string} colour - 'dark' or 'light'.
+ */
+function incrementMoveCount(colour) {
+  moveCount[colour] = moveCount[colour || 0] + 1;
+  updateMoveCountUI();
+}
+
+function updateMoveCountUI() {
+  updateScoreboardUI();
+}
+
+/** Updates the turn indicator text: difficulty label in 1P mode, whose turn it is in 2P mode. */
+function updateTurnIndicator() {
+  const el = document.getElementById('turn-indicator');
+  if (!el) return;
+
+  if (selectedMode === '1p') {
+    const DIFFICULTY_LABELS = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' };
+    el.textContent = `Level: ${DIFFICULTY_LABELS[selectedDifficulty] ?? selectedDifficulty}`;
+  } else {
+    el.textContent = game.currentPlayer === 'dark' ? `${ACTIVE_THEME.pieceDarkName}'s Turn` : `${ACTIVE_THEME.pieceLightName}'s Turn`;
+  }
+}
+
+// ==== Scoreboard ====
+
+/** Wires up the scoreboard's reset-score button. */
 function bindScoreboard() {
   document.getElementById('scoreboard-reset-btn').addEventListener('click', () => {
     score = { dark: 0, light: 0 };
@@ -201,8 +232,7 @@ function bindScoreboard() {
   });
 }
 
-// Score is tracked separately per mode (and per difficulty within 1P) so
-// switching modes doesn't clobber or inherit another mode's tally.
+/** @returns {string} Storage key suffix, scoped per mode/difficulty so scores don't mix across them. */
 function scoreStorageKey() {
   return selectedMode === '1p' ? `1p-${selectedDifficulty}` : '2p';
 }
@@ -221,11 +251,13 @@ function saveScore() {
   sessionStorage.setItem(`checkers-score-light-${key}`, score.light);
 }
 
+/** @returns {{dark: string, light: string}} Display labels for the scoreboard columns. */
 function scoreboardLabels() {
   if (selectedMode === '1p') return { dark: 'You', light: 'Bot' };
   return { dark: ACTIVE_THEME.pieceDarkName, light: ACTIVE_THEME.pieceLightName };
 }
 
+/** Refreshes every scoreboard element (labels, score, captures, moves) per current settings. */
 function updateScoreboardUI() {
   const wrap = document.getElementById('sidebar-scoreboard-wrap');
   if (!wrap) return;
@@ -261,11 +293,15 @@ function updateScoreboardUI() {
   document.getElementById('scoreboard-reset-btn').classList.toggle('hidden', !keepScoreEnabled);
 }
 
+/**
+ * @param {string} colour - Colour of the player who made the capture.
+ */
 function recordCapture(colour) {
   captures[colour] = (captures[colour] || 0) + 1;
   updateScoreboardUI();
 }
 
+/** Records a win/draw exactly once per game, the first time isGameOver() becomes true. */
 function checkForGameOverScore() {
   if (gameOverScored || !game.isGameOver()) return;
 
@@ -276,10 +312,11 @@ function checkForGameOverScore() {
   updateScoreboardUI();
 }
 
-// --- Bot hook ------------------------------------------------------
+// ==== Bot Move Scheduling ====
 
 const BOT_MOVE_DELAY_MS = 300;
 
+/** Schedules the bot's move after a short delay, if it's currently the bot's turn in 1P mode. */
 function maybeTriggerBotMove() {
   if (selectedMode !== '1p') return;
   if (game.currentPlayer !== 'light') return;
@@ -288,6 +325,11 @@ function maybeTriggerBotMove() {
   setTimeout(() => playBotMove(new Bot(selectedDifficulty)), BOT_MOVE_DELAY_MS);
 }
 
+/**
+ * Asks the bot to choose and play a move, if it's still validly the
+ * bot's turn (guards against state changing during the delay).
+ * @param {Bot} bot
+ */
 function playBotMove(bot) {
   if (selectedMode !== '1p') return;
   if (game.currentPlayer !== 'light') return;
@@ -297,8 +339,9 @@ function playBotMove(bot) {
   if (move) applyMoveWithAnimation(move);
 }
 
-// --- Rules modal ----------------------------------------------------------
+// ==== Rules Modal ====
 
+/** Wires up the rules modal: close button, backdrop click, and the rules/demo tab switch. */
 function bindRulesModal() {
   document.getElementById('close-rules-btn').addEventListener('click', closeRulesModal);
 
@@ -329,13 +372,15 @@ function openRulesModal() {
 function closeRulesModal() {
   document.getElementById('rules-modal').classList.add('hidden');
 
+  // Always return to the rules tab (and stop the demo) so it's fresh next time it opens
   pauseDemoReplay();
   document.getElementById('demo-view').classList.add('hidden');
   document.getElementById('rules-view').classList.remove('hidden');
 }
 
-// --- Settings modal ---------------------------------------------------
+// ==== Settings Modal ====
 
+/** Wires up every control inside the settings modal. */
 function bindSettingsModal() {
   document.getElementById('close-settings-btn').addEventListener('click', closeSettingsModal);
 
@@ -373,9 +418,12 @@ function closeSettingsModal() {
   document.getElementById('settings-modal').classList.add('hidden');
 }
 
+/** @returns {boolean} Whether the settings modal is currently open (used to suppress board clicks). */
 function isSettingsModalOpen() {
   return !document.getElementById('settings-modal').classList.contains('hidden');
 }
+
+// ==== Dark Mode / Theme ====
 
 function toggleDarkMode() {
   darkModeOn = !darkModeOn;
@@ -388,11 +436,25 @@ function applyDarkModeClass() {
   document.getElementById('game-screen').classList.toggle('dark-mode', darkModeOn);
 }
 
+/**
+ * @param {number} direction - +1 for next theme, -1 for previous.
+ */
+function cycleTheme(direction) {
+  themeIndex = (themeIndex + direction + THEME_ORDER.length) % THEME_ORDER.length;
+  const themeKey = THEME_ORDER[themeIndex];
+  ACTIVE_THEME = THEMES[themeKey];
+  localStorage.setItem('checkers-theme', themeKey);
+  updateSettingsUI();
+  updateTurnIndicator();
+}
+
+// ==== Setting Toggles ====
+
 function toggleUndoSetting() {
   undoSettingEnabled = !undoSettingEnabled;
   sessionStorage.setItem('checkers-undo-enabled', undoSettingEnabled);
   updateSettingsUI();
-  updateSidebarForMode(); // NEW - was gated behind `if (appState === 'game')`, always true here
+  updateSidebarForMode();
 }
 
 function toggleHintSetting() {
@@ -400,7 +462,7 @@ function toggleHintSetting() {
   sessionStorage.setItem('checkers-hint-enabled', hintSettingEnabled);
   if (!hintSettingEnabled) manualHintActive = false;
   updateSettingsUI();
-  updateSidebarForMode(); // NEW
+  updateSidebarForMode();
 }
 
 function setKeepScore(value) {
@@ -419,18 +481,10 @@ function setShowMoves(value) {
   showMovesEnabled = value;
   sessionStorage.setItem('checkers-show-moves', showMovesEnabled);
   updateSettingsUI();
-  updateSidebarForMode(); // NEW
+  updateSidebarForMode();
 }
 
-function cycleTheme(direction) {
-  themeIndex = (themeIndex + direction + THEME_ORDER.length) % THEME_ORDER.length;
-  const themeKey = THEME_ORDER[themeIndex];
-  ACTIVE_THEME = THEMES[themeKey];
-  localStorage.setItem('checkers-theme', themeKey);
-  updateSettingsUI();
-  updateTurnIndicator(); // NEW
-}
-
+/** Syncs all settings-modal controls (switches, toggle groups, labels) to current state. */
 function updateSettingsUI() {
   const toggle = document.getElementById('dark-mode-toggle');
   toggle.setAttribute('aria-checked', darkModeOn);

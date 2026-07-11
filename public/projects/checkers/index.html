@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Checkers</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Checkers</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Landing screen -->
+  <!-- ==== Landing Screen ==== -->
   <section id="landing-screen" class="screen">
     <h1 class="title">CHECKERS</h1>
     <div class="landing-actions">
@@ -19,12 +20,13 @@
     </div>
   </section>
 
-  <!-- Rules modal -->
+  <!-- ==== Rules Modal ==== -->
   <div id="rules-modal" class="modal hidden">
     <div class="modal-content">
 
       <button id="close-rules-btn" class="modal-close" aria-label="Close">&times;</button>
 
+      <!-- Rules text view -->
       <div id="rules-view">
         <h2 class="subtitle">How to Play?</h2>
         <ul class="rules-list">
@@ -37,6 +39,7 @@
         <button id="watch-demo-btn" class="btn btn-text">&#9654; Watch a quick demo instead</button>
       </div>
 
+      <!-- Animated demo view (p5 sketch from DemoReplay.js) -->
       <div id="demo-view" class="hidden">
         <h2 class="subtitle">Quick Tutorial</h2>
         <p id="demo-scene-label" class="demo-scene-label">"demo label"</p>
@@ -47,6 +50,7 @@
     </div>
   </div>
 
+  <!-- ==== Scripts ==== -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   <script src="js/theme.js"></script>
   <script src="js/Cell.js"></script>

@@ -1,38 +1,32 @@
+// checkers/js/Bot.js
+
 /**
- * The AI opponent. Three difficulties:
- *
- *   beginner     - greedy: takes the best-looking capture available this
- *                  turn (biggest piece, prefers kings), otherwise moves
- *                  randomly. No lookahead at all.
- *   intermediate - minimax search, 4 plies deep.
- *   advanced     - minimax with alpha-beta pruning, 8 plies deep.
- *
- * A "ply" here is a single from->to move, not a full human turn - so a
- * multi-jump chain burns multiple plies of the search just like it burns
- * multiple real moves. That keeps the search logic identical whether or
- * not a chain is in progress: chooseMove always just answers "what's the
- * best single Move to make right now given the current chainCell state",
- * which is exactly what Game.getLegalMoves() already restricts itself to.
- *
- * The search simulates moves directly against `game.board` and mutates
- * `game.currentPlayer` / `game.chainCell` temporarily, then restores them -
- * it never touches `game.history`, so it can't interfere with the real
- * undo stack the player uses.
+ * AI opponent for the checkers game. Difficulty determines the strategy:
+ *  - 'beginner'     -> greedy, one-move-lookahead heuristic
+ *  - 'intermediate' -> minimax search, fixed depth
+ *  - 'advanced'     -> minimax with alpha-beta pruning, deeper search
  */
 class Bot {
+  // ==== Config ====
+
   static PIECE_VALUE = 3;
   static KING_VALUE = 5;
   static WIN_SCORE = 10000;
 
+  /**
+   * @param {string} difficulty - 'beginner' | 'intermediate' | 'advanced'.
+   */
   constructor(difficulty = 'beginner') {
     this.difficulty = difficulty;
   }
 
+  // ==== Public API ====
+
   /**
-   * @param game the current Game, so the bot can inspect legal moves
-   * @return a Move for the bot to play, or null if there are none
-   *         (shouldn't normally happen - the caller should only ask when
-   *         it's this player's turn and the game isn't over)
+   * Picks a move for the bot to play, using the strategy for its
+   * current difficulty.
+   * @param {Game} game
+   * @returns {Move|null} The chosen move, or null if none are available.
    */
   chooseMove(game) {
     const legalMoves = game.getLegalMoves();
@@ -49,8 +43,15 @@ class Bot {
     }
   }
 
-  // --- Beginner: greedy, no lookahead ---------------------------------
+  // ==== Greedy Strategy (beginner) ====
 
+  /**
+   * Picks the move with the best immediate (one-ply) heuristic score,
+   * breaking ties randomly.
+   * @param {Game} game
+   * @param {Move[]} legalMoves
+   * @returns {Move}
+   */
   chooseGreedy(game, legalMoves) {
     let best = [];
     let bestScore = -Infinity;
@@ -68,9 +69,13 @@ class Bot {
     return best[Math.floor(Math.random() * best.length)];
   }
 
-  /** Rates a single move in isolation - no lookahead, just "how good does
-   * this look right now": prefer capturing (especially kings), and prefer
-   * landing on the back row to crown a piece. */
+  /**
+   * Heuristic score for a single move: rewards captures (more for
+   * capturing a king) and rewards moves that promote to king.
+   * @param {Game} game
+   * @param {Move} move
+   * @returns {number}
+   */
   greedyScore(game, move) {
     let score = 0;
 
@@ -90,17 +95,20 @@ class Bot {
     return score;
   }
 
-  // --- Intermediate / Advanced: minimax (with optional alpha-beta) ---
+  // ==== Minimax / Alpha-Beta Search (intermediate, advanced) ====
 
   /**
-   * Tries every legal move at the root, recursively scores what follows
-   * it, and returns whichever move led to the best outcome for the bot.
-   * `useAlphaBeta` just toggles pruning - the tree explored (and the move
-   * eventually picked) is otherwise the same shape of search either way.
+   * Evaluates every legal move `depth` plies deep (via minimax or
+   * alpha-beta) and returns the best one, breaking ties randomly.
+   * @param {Game} game
+   * @param {Move[]} legalMoves
+   * @param {number} depth - Search depth in plies.
+   * @param {boolean} useAlphaBeta - Whether to prune with alpha-beta.
+   * @returns {Move}
    */
   searchBest(game, legalMoves, depth, useAlphaBeta) {
     const botColour = game.currentPlayer;
-    const moves = this.shuffled(legalMoves); // randomize order so ties aren't always won by the first move in the list
+    const moves = this.shuffled(legalMoves);
 
     let bestMoves = [];
     let bestScore = -Infinity;
@@ -129,6 +137,14 @@ class Bot {
     return bestMoves[Math.floor(Math.random() * bestMoves.length)];
   }
 
+  /**
+   * Plain minimax search (no pruning).
+   * @param {Game} game
+   * @param {number} depth - Remaining plies to search.
+   * @param {boolean} maximizing - Whether the current ply favours the bot.
+   * @param {string} botColour
+   * @returns {number} Score of the position from the bot's perspective.
+   */
   minimax(game, depth, maximizing, botColour) {
     const terminal = this.terminalScore(game, depth, botColour);
     if (terminal !== null) return terminal;
@@ -151,6 +167,17 @@ class Bot {
     return best;
   }
 
+  /**
+   * Minimax search with alpha-beta pruning, allowing greater depth for
+   * the same search budget.
+   * @param {Game} game
+   * @param {number} depth - Remaining plies to search.
+   * @param {number} alpha - Best score the maximizer can guarantee so far.
+   * @param {number} beta - Best score the minimizer can guarantee so far.
+   * @param {boolean} maximizing
+   * @param {string} botColour
+   * @returns {number} Score of the position from the bot's perspective.
+   */
   alphaBeta(game, depth, alpha, beta, maximizing, botColour) {
     const terminal = this.terminalScore(game, depth, botColour);
     if (terminal !== null) return terminal;
@@ -169,7 +196,7 @@ class Bot {
         this.undoSimulated(game, undoInfo);
 
         alpha = Math.max(alpha, value);
-        if (alpha >= beta) break; // beta cutoff - opponent won't let this branch happen
+        if (alpha >= beta) break; // beta cut-off: minimizer won't allow this branch
       }
       return value;
     } else {
@@ -183,25 +210,38 @@ class Bot {
         this.undoSimulated(game, undoInfo);
 
         beta = Math.min(beta, value);
-        if (alpha >= beta) break; // alpha cutoff - bot has a better option elsewhere
+        if (alpha >= beta) break; // alpha cut-off: maximizer won't allow this branch
       }
       return value;
     }
   }
 
-  /** Returns a decisive +/- score if the game has actually ended in this
-   * simulated position (so a forced win/loss always outweighs a merely
-   * good material score), or null if the search should keep going. */
+  // ==== Search Helpers ====
+
+  /**
+   * Checks whether the game has ended at this node, returning a large
+   * win/loss score (biased by remaining depth, so faster wins are
+   * preferred) or null if the game is still in progress.
+   * @param {Game} game
+   * @param {number} depth
+   * @param {string} botColour
+   * @returns {number|null}
+   */
   terminalScore(game, depth, botColour) {
     if (!game.isGameOver()) return null;
     const winner = game.getWinner();
-    // + depth so a faster forced win/slower forced loss is preferred
-    // over an equally-certain but longer one.
     return winner === botColour ? Bot.WIN_SCORE + depth : -Bot.WIN_SCORE - depth;
   }
 
-  /** Static material/positional evaluation of the current board, from
-   * botColour's perspective (positive = good for the bot). */
+  /**
+   * Static evaluation of a board position from the bot's perspective:
+   * rewards material (extra for kings), slight bonus for advancing
+   * regular pieces toward promotion, and a slight bonus for
+   * centre-board control.
+   * @param {Game} game
+   * @param {string} botColour
+   * @returns {number}
+   */
   evaluate(game, botColour) {
     const width = game.board.getWidth();
     let score = 0;
@@ -213,10 +253,6 @@ class Bot {
 
         let value = piece.isKing ? Bot.KING_VALUE : Bot.PIECE_VALUE;
 
-        // Small nudge for non-kings advancing toward their crowning row,
-        // and for staying off the board's edges (edge pieces have fewer
-        // move options and can't be jumped from one side, but also can't
-        // jump either).
         if (!piece.isKing) {
           const advanced = piece.colour === 'dark' ? (width - 1 - cell.y) : cell.y;
           value += advanced * 0.1;
@@ -231,12 +267,15 @@ class Bot {
     return score;
   }
 
-  // --- Simulation helpers ---------------------------------------------
-  // These mirror what Game.applyMove()/undo() do for a single step, but
-  // skip the history bookkeeping entirely, since the search needs to
-  // apply and unwind thousands of moves that should never be undo-able
-  // by the player.
+  // ==== Simulation (apply/undo for search) ====
 
+  /**
+   * Applies a move directly to the live game state for search purposes,
+   * capturing everything needed to reverse it afterward.
+   * @param {Game} game
+   * @param {Move} move
+   * @returns {object} Undo info, to be passed to undoSimulated().
+   */
   applySimulated(game, move) {
     const piece = move.from.getPiece();
     const wasKing = piece.isKing;
@@ -248,7 +287,6 @@ class Bot {
 
     if (move.isJump() && game.hasFurtherJump(move.to)) {
       game.chainCell = move.to;
-      // same player continues
     } else {
       game.chainCell = null;
       game.switchTurn();
@@ -257,6 +295,12 @@ class Bot {
     return { move, piece, wasKing, capturedPiece, turnBefore, chainBefore };
   }
 
+  /**
+   * Reverses a move previously applied by applySimulated(), restoring
+   * the exact prior game state.
+   * @param {Game} game
+   * @param {object} info - Undo info returned by applySimulated().
+   */
   undoSimulated(game, info) {
     const { move, piece, wasKing, capturedPiece, turnBefore, chainBefore } = info;
 
@@ -272,6 +316,12 @@ class Bot {
     game.chainCell = chainBefore;
   }
 
+  // ==== Utilities ====
+
+  /**
+   * @param {Array} arr
+   * @returns {Array} A shuffled shallow copy of `arr` (Fisher-Yates).
+   */
   shuffled(arr) {
     const copy = arr.slice();
     for (let i = copy.length - 1; i > 0; i--) {

@@ -1,38 +1,33 @@
+// checkers/js/sketch.js
+
 /**
- * The p5 entry point. Owns nothing about game rules - only the canvas,
- * the renderer, and which cell is currently selected (a UI concern, not
- * a rules concern). Every actual decision ("is this move legal", "whose
- * turn is it") is delegated to Game.
+ * Main p5 sketch (global mode) for the live game screen: board sizing,
+ * rendering, move animation, and mouse input. Game rules live in
+ * GameLogic.js; this file is purely presentation + input handling.
  */
-const BASE_CELLSIZE = 77; // desktop/default cell size, used as an upper cap
+
+// ==== Config / State ====
+
+const BASE_CELLSIZE = 77;
 let CELLSIZE = BASE_CELLSIZE;
-const CHAIN_PAUSE_MS = 150; // brief pause before an auto-continued jump
+const CHAIN_PAUSE_MS = 150; // brief pause before auto-continuing a single-option jump chain
 
 let game;
-let p5Ready = false; // NEW
+let p5Ready = false;
 
-// UI-only selection state - lives here, not in Game, since Game
-// shouldn't need to know or care what a human currently has clicked.
 let selectedCell = null;
 let legalMovesForSelected = [];
 
-// UI-only animation state for the piece currently sliding/jumping between
-// cells. Game/Board have already applied the move by the time this exists -
-// it's purely a visual interpolation layered on top of the real state.
 let animation = null;
+let pendingAutoMove = null; // scheduled move for an auto-continued jump chain
 
-// A forced single-option chain jump waiting out its pause before
-// auto-playing. { move, readyAt }
-let pendingAutoMove = null;
+// ==== Sizing ====
 
 /**
- * Decides how big the board should be.
- * - Narrow/portrait screens (width <= height, e.g. phones/tablets in
- *   portrait): 90% of whichever of width/height is smaller, so the board
- *   always fits on screen with a little breathing room.
- * - Wide/landscape screens: fit within whatever space #canvas-container
- *   actually has available (it already accounts for the sidebar), capped
- *   at the original desktop size so it never grows huge on big monitors.
+ * Computes the board's pixel size based on viewport/container dimensions,
+ * capping it to the board's natural size so cells never render larger
+ * than BASE_CELLSIZE.
+ * @returns {number} Board side length in pixels.
  */
 function computeBoardSize() {
   const w = window.innerWidth;
@@ -51,6 +46,8 @@ function computeBoardSize() {
   return Math.min(fitted, maxSize);
 }
 
+// ==== p5 Lifecycle ====
+
 function setup() {
   game = new Game();
 
@@ -60,14 +57,10 @@ function setup() {
   cnv.parent('canvas-container');
   noStroke();
 
-  p5Ready = true;      // NEW
-  tryStartGame();       // NEW
+  p5Ready = true;
+  tryStartGame();
 }
 
-/** p5 special function - called automatically whenever the browser
- * window resizes. Recomputes the board size/CELLSIZE and resizes the
- * canvas to match; draw() keeps looping so the board redraws at the
- * new scale on the very next frame. */
 function windowResized() {
   const size = computeBoardSize();
   CELLSIZE = size / Board.BOARD_WIDTH;
@@ -91,10 +84,11 @@ function draw() {
   }
 }
 
+// ==== Board Drawing ====
+
+/** Draws the checkerboard squares, hint/selection/destination highlights, and pieces. */
 function drawBoard() {
   const board = game.board;
-  // In 1P, hints are a player aid - never show them while it's the bot's
-  // turn to move (the player is always 'dark', see maybeTriggerBotMove).
   const isPlayersTurn = selectedMode !== '1p' || game.currentPlayer === 'dark';
   const hintsOn = (autoHints || manualHintActive) && game.gameStarted && isPlayersTurn;
   const movablePieces = hintsOn ? game.getMovablePieces() : new Set();
@@ -131,13 +125,16 @@ function drawBoard() {
   }
 }
 
+/**
+ * Draws the piece on a cell, unless it's currently mid-animation (that
+ * piece is drawn separately by drawAnimatedPiece so it can move
+ * smoothly between cells).
+ * @param {Cell} cell
+ */
 function drawPiece(cell) {
   const piece = cell.getPiece();
   if (piece === null) return;
 
-  // The piece currently animating into this cell is drawn separately by
-  // drawAnimatedPiece(), mid-flight - skip it here so it doesn't also
-  // appear "already arrived" underneath the animation.
   if (animation && cell.x === animation.toX && cell.y === animation.toY) return;
 
   const centerX = cell.x * CELLSIZE + CELLSIZE / 2;
@@ -146,6 +143,13 @@ function drawPiece(cell) {
   drawPieceAt(centerX, centerY, piece);
 }
 
+/**
+ * Draws a single piece disc at exact pixel coordinates.
+ * @param {number} centerX
+ * @param {number} centerY
+ * @param {Piece} piece
+ * @param {number} alpha - Opacity 0-255, used to fade out captured pieces.
+ */
 function drawPieceAt(centerX, centerY, piece, alpha = 255) {
   const fillHex = piece.colour === 'light' ? ACTIVE_THEME.pieceLight : ACTIVE_THEME.pieceDark;
   const strokeHex = piece.colour === 'light' ? ACTIVE_THEME.pieceLightShadow : ACTIVE_THEME.pieceDarkShadow;
@@ -164,9 +168,13 @@ function drawPieceAt(centerX, centerY, piece, alpha = 255) {
   noStroke();
 }
 
-/** Draws the piece currently mid-move: a straight slide for a plain step,
- * or a slide with an upward arc for a jump, plus the captured piece
- * fading out at its cell for the duration of the jump. */
+// ==== Animation ====
+
+/**
+ * Interpolates the moving piece's position along its path, arcing it
+ * upward for jumps, and fades out any captured piece. Fires
+ * onAnimationComplete() once the animation finishes.
+ */
 function drawAnimatedPiece() {
   if (!animation) return;
 
@@ -181,8 +189,7 @@ function drawAnimatedPiece() {
   let centerY = py * CELLSIZE + CELLSIZE / 2;
 
   if (animation.isJump) {
-    // Arc upward and back down over the course of the jump.
-    centerY -= Math.sin(t * Math.PI) * CELLSIZE * 0.6;
+    centerY -= Math.sin(t * Math.PI) * CELLSIZE * 0.6; // arc upward mid-jump
   }
 
   drawPieceAt(centerX, centerY, animation.piece);
@@ -202,13 +209,10 @@ function drawAnimatedPiece() {
 }
 
 /**
- * Called once a move's slide/jump animation finishes. If that move left
- * the game mid multi-jump-chain, decides what happens next:
- *  - exactly one forced continuation -> auto-play it after a brief pause
- *  - more than one option -> auto-select the chained piece so the player
- *    only has to click a destination, not re-click the piece
- * Otherwise (chain over, or it was never a chain), hands off to the bot
- * hook in case it's now the bot's turn.
+ * Handles bookkeeping once a move's animation finishes: scoring/turn
+ * updates for a completed turn, or continuing/auto-resolving a
+ * multi-jump chain.
+ * @param {object} finished - The animation object that just completed.
  */
 function onAnimationComplete(finished) {
   if (!finished.continuesChain) {
@@ -219,25 +223,25 @@ function onAnimationComplete(finished) {
     return;
   }
 
-  // The chain-continuing piece belongs to the bot - let it pick the next
-  // jump itself rather than falling into the human click-to-continue path
-  // below, which would otherwise sit there forever waiting for a click
-  // nobody is going to make.
+  // Bot continues its own jump chain automatically
   if (selectedMode === '1p' && game.currentPlayer === 'light') {
     setTimeout(() => playBotMove(new Bot(selectedDifficulty)), CHAIN_PAUSE_MS);
     return;
   }
 
-  const chainMoves = game.getLegalMoves(); // already filtered to game.chainCell's jumps
+  const chainMoves = game.getLegalMoves();
 
   if (chainMoves.length === 1) {
+    // Only one way to continue the chain - play it automatically
     pendingAutoMove = { move: chainMoves[0], readyAt: millis() + CHAIN_PAUSE_MS };
   } else if (chainMoves.length > 1) {
+    // Multiple options - let the player choose the next jump
     selectedCell = game.chainCell;
     legalMovesForSelected = chainMoves;
   }
 }
 
+/** Draws the semi-transparent game-over overlay with the result message. */
 function drawGameOverMessage() {
   const winner = game.getWinner();
   let label;
@@ -250,7 +254,7 @@ function drawGameOverMessage() {
     label = `${ACTIVE_THEME.pieceDarkName} wins!`;
   }
 
-  updateRestartButtonLabel(); // NEW
+  updateRestartButtonLabel();
 
   fill(0, 180);
   rect(0, 0, width, height);
@@ -261,16 +265,19 @@ function drawGameOverMessage() {
   text(label, width / 2, height / 2);
 }
 
+/** Relabels the restart button ("Start Over" pre-game, "Play Again" once the game has ended). */
 function updateRestartButtonLabel() {
   const restartBtn = document.getElementById('restart-btn');
   restartBtn.textContent = game.isGameOver() ? 'Play Again' : 'Start Over';
 }
 
+// ==== Input Handling ====
+
 function mousePressed() {
-  if (isSettingsModalOpen()) return; // paused - don't let clicks reach the board
+  if (isSettingsModalOpen()) return;
   if (!game.gameStarted || game.isGameOver()) return;
-  if (animation || pendingAutoMove) return; // ignore clicks mid-move
-  if (selectedMode === '1p' && game.currentPlayer !== 'dark') return; // it's the bot's turn
+  if (animation || pendingAutoMove) return;
+  if (selectedMode === '1p' && game.currentPlayer !== 'dark') return;
   if (mouseX < 0 || mouseX >= width || mouseY < 0 || mouseY >= height) return;
 
   const col = Math.floor(mouseX / CELLSIZE);
@@ -290,8 +297,9 @@ function mousePressed() {
 }
 
 /**
- * First click: select a cell only if it holds a piece belonging to
- * whoever's turn it currently is, and remember that piece's legal moves.
+ * Selects `clicked` if it holds a piece belonging to the current
+ * player, and loads that piece's legal moves for highlighting.
+ * @param {Cell} clicked
  */
 function trySelect(clicked) {
   const piece = clicked.getPiece();
@@ -302,12 +310,9 @@ function trySelect(clicked) {
 }
 
 /**
- * Second click: attempt to move the selected piece to the clicked cell.
- * Clears selection afterward whether the move succeeded or not - if this
- * was a multi-jump chain with exactly one forced continuation, it'll
- * auto-play from onAnimationComplete(); if there's a genuine branch, the
- * chained piece gets auto-selected there so the player only needs to
- * click a destination next.
+ * Attempts to move the selected piece to `clicked`, if that's one of
+ * its legal destinations, then clears the selection either way.
+ * @param {Cell} clicked
  */
 function tryMove(clicked) {
   const attempted = legalMovesForSelected.find(m => m.to === clicked);
@@ -320,10 +325,8 @@ function tryMove(clicked) {
 }
 
 /**
- * Applies a move to Game and kicks off its slide/jump animation. Grabs
- * the piece (and, for a jump, the captured piece) before applying the
- * move, since Board.movePiece clears those cells immediately - the
- * references are needed afterward purely to animate the transition.
+ * Applies a move to the game state and kicks off its visual animation.
+ * @param {Move} move
  */
 function applyMoveWithAnimation(move) {
   const piece = move.from.getPiece();
@@ -351,6 +354,7 @@ function applyMoveWithAnimation(move) {
   };
 }
 
+/** Clears the current piece selection and its highlighted legal moves. */
 function clearSelection() {
   selectedCell = null;
   legalMovesForSelected = [];

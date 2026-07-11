@@ -1,13 +1,14 @@
+// checkers/js/Cell.js
+
 /**
- * A single cell on the checkers board, identified by its (x, y) coordinates.
- * May or may not currently hold a Piece.
- *
- * This link is one-directional: a Cell knows its piece, but a piece has no
- * idea which Cell it's on. That means a piece's location has exactly one
- * source of truth - wherever it sits in Board's grid - instead of being
- * duplicated on the piece itself and needing to be kept in sync.
+ * A single square on the board. Tracks its board coordinates and
+ * whichever Piece (if any) currently occupies it.
  */
 class Cell {
+  /**
+   * @param {number} x - Column index (0-based).
+   * @param {number} y - Row index (0-based).
+   */
   constructor(x, y) {
     this.x = x;
     this.y = y;
@@ -15,14 +16,16 @@ class Cell {
   }
 
   /**
-   * Assigns a piece to this cell, or clears it if `p` is null. This does
-   * NOT remove `p` from wherever it previously sat - callers (see
-   * Board.movePiece) are responsible for clearing the old cell themselves.
+   * Places a piece on this cell, or clears it if null is passed.
+   * @param {Piece|null} p
    */
   setPiece(p) {
     this.piece = p;
   }
 
+  /**
+   * @returns {Piece|null} The piece currently on this cell, or null if empty.
+   */
   getPiece() {
     return this.piece;
   }
