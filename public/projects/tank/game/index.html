@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tanks — Minerva Limina</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <script src="https://unpkg.com/colyseus.js@^0.16.0/dist/colyseus.js"></script>
+  <script src="../js/Network.js"></script>
+
+  <!-- shared helpers / palette -->
+  <script src="../js/utils.js"></script>
+  <script src="../js/theme.js"></script>
+
+  <!-- model classes (dependency order matters: no bundler here) -->
+  <script src="../js/Cell.js"></script>
+  <script src="../js/Board.js"></script>
+  <script src="../js/Explosion.js"></script>
+  <script src="../js/Projectile.js"></script>
+  <script src="../js/Tank.js"></script>
+  <script src="../js/PlayerHUD.js"></script>
+  <script src="../js/GameLogic.js"></script>
+
+  <!-- p5 entry point: canvas, render loop, input -->
+  <script src="../js/sketch.js"></script>
+</body>
+</html>

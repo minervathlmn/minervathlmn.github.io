@@ -1,0 +1,575 @@
+:root {
+  --beige: #ecdfc8;
+  --beige-light: #f4efe1;
+  --maroon: #5c2b2b;
+  --maroon-deep: #3d1c1c;
+  --maroon-dim: #7a4441;
+  --maroon-faint: rgba(92, 43, 43, 0.08);   /* #5C2B2B14 */
+
+  --green: #8a9b6e;
+  --plum: #c9b6d6;
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'Inter', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--beige-light);
+  color: var(--maroon-deep);
+  font-family: var(--font-body);
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+main {
+  text-align: center;
+  padding: 2rem;
+}
+
+h1 {
+  font-family: 'Archivo Black', var(--font-display), sans-serif;
+  font-size: clamp(3rem, 9vw, 6.5rem);
+  font-weight: 555;
+  color: var(--maroon);
+  letter-spacing: 0.04em;
+  margin: 0 0 3rem;
+  text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  gap: 1.25rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+button {
+  font-family: inherit;
+  font-size: 1.5rem;
+  padding: 0.9rem 2.5rem;
+  border-radius: 8px;
+  border: 2px solid var(--maroon);
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--maroon);
+  color: var(--beige-light);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--maroon-dim);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--maroon);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--maroon-faint);
+  transform: translateY(-2px);
+}
+
+input[type="text"] {
+  font-family: inherit;
+  font-size: 1.1rem;
+  padding: 0.7rem 1rem;
+  border: 2px solid var(--maroon);
+  border-radius: 8px;
+  background: var(--beige-light);
+  color: var(--maroon);
+  width: 100%;
+}
+
+input[type="text"]:focus {
+  outline: 3px solid var(--maroon-faint);
+}
+
+/* Rules modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 20, 18, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 30;
+}
+
+.modal-backdrop.open { display: flex; }
+
+.modal {
+  background: var(--beige-light);
+  border: 2px solid var(--maroon);
+  border-radius: 10px;
+  max-width: 480px;
+  width: 100%;
+  padding: 2rem;
+  text-align: left;
+}
+
+.modal h2 {
+  margin-top: 0;
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.modal p {
+  line-height: 1.5;
+}
+
+.modal ul {
+  line-height: 1.7;
+  padding-left: 1.2rem;
+}
+
+.modal .note {
+  font-size: 0.9rem;
+  color: var(--maroon-dim);
+}
+
+.modal label.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  margin: 1rem 0;
+}
+
+.modal .close-row {
+  text-align: right;
+  margin-top: 1.5rem;
+}
+
+.modal .modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.modal .modal-actions button {
+  flex: 1;
+  padding: 0.7rem;
+  font-size: 1rem;
+}
+
+.modal button {
+  font-size: 1.1rem;
+  padding: 0.5rem 1.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button { transition: none; }
+}
+
+#canvas-container {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  line-height: 0; /* avoid a few px of extra space under <canvas> */
+}
+
+#canvas-container canvas {
+  display: block;
+}
+
+/* --- Lobby: shared screen layout --- */
+
+.screen {
+  display: none;
+  width: 100%;
+  max-width: 640px;
+}
+
+.screen.active {
+  display: block;
+}
+
+.screen h1 {
+  text-align: center;
+  font-size: clamp(2rem, 6vw, 3rem);
+  margin: 0 0 2.5rem;
+}
+
+.back-link {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 2.5rem;
+  background: none;
+  border: none;
+  color: var(--maroon);
+  text-decoration: underline;
+  font-size: 1.1rem;
+}
+
+.error-note {
+  color: #a33;
+  text-align: center;
+  margin: 0.5rem 0 0;
+  min-height: 1.2rem;
+}
+
+/* --- Lobby: menu screen --- */
+
+.playing-as {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--maroon-dim);
+  font-size: 0.95rem;
+}
+
+.playing-as button {
+  background: none;
+  border: none;
+  color: var(--maroon);
+  text-decoration: underline;
+  font-size: 0.95rem;
+  padding: 0;
+  margin-left: 0.3rem;
+}
+
+.menu-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+#screen-menu button.big {
+  font-size: 1.4rem;
+  padding: 1rem 3rem;
+  width: 320px;
+  max-width: 100%;
+}
+
+#screen-menu .row-two {
+  display: flex;
+  gap: 1.1rem;
+  width: 320px;
+  max-width: 100%;
+}
+
+#screen-menu .row-two button {
+  flex: 1;
+  font-size: 1.1rem;
+  padding: 1rem 0.5rem;
+}
+
+/* --- Lobby: join others screen --- */
+
+.tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.7rem;
+  font-size: 1.1rem;
+  background: transparent;
+  color: var(--maroon);
+}
+
+.tab-btn.active {
+  background: var(--maroon);
+  color: var(--beige-light);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+.code-input {
+  font-size: 2rem;
+  letter-spacing: 1.2rem;
+  text-align: center;
+  max-width: 260px;
+  margin: 0 auto 1rem;
+  padding-left: 1.6rem; /* visually re-center given letter-spacing */
+}
+
+.room-list {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 3rem;
+}
+
+.room-list li button {
+  width: 100%;
+  text-align: left;
+  padding: 0.8rem 1.2rem;
+  font-size: 1.05rem;
+  background: transparent;
+}
+
+.room-list li button:hover {
+  background: var(--maroon-faint);
+}
+
+.empty-note {
+  text-align: center;
+  color: var(--maroon-dim);
+  font-style: italic;
+}
+
+.footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
+.footer-row button {
+  font-size: 1.1rem;
+  padding: 0.7rem 1.6rem;
+}
+
+.footer-row .back-link {
+  /* Matches .room-sidebar's min-width so "Back" centers under the
+     Close Lobby / Public-Private column above it, instead of centering
+     within the whole footer row (which would drift it toward Start). */
+  width: 160px;
+  flex: 0 0 auto;
+  text-align: center;
+  margin: 0;
+  padding: 0.7rem 0;
+}
+
+/* --- Lobby: room screen --- */
+
+.room-box {
+  border: 2px solid var(--maroon);
+  border-radius: 12px;
+  padding: 1.75rem;
+}
+
+.room-main {
+  display: flex;
+  gap: 1.75rem;
+  align-items: stretch;
+  margin-bottom: 1.5rem;
+}
+
+.room-sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 160px;
+}
+
+.room-sidebar .btn-secondary {
+  width: 100%;
+  font-size: 1.1rem;
+  padding: 1rem 0.5rem;
+}
+
+/* Groups the code display with the visibility toggle so they move as a
+   unit, pinned to the bottom of the sidebar while Close/Leave Lobby stays
+   pinned to the top (via the parent's justify-content: space-between). */
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.room-sidebar .code-display {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0;
+}
+
+.room-sidebar .code-display .digits {
+  gap: 0.35rem;
+}
+
+.room-sidebar .code-display .digit {
+  width: 1.9rem;
+  height: 2.3rem;
+  font-size: 1.1rem;
+}
+
+.room-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Reserves room for a full 4-player lobby (owner + 3) so the box doesn't
+   grow/shrink as players join — 4 rows at ~3.1rem each plus 3 gaps. */
+.player-list {
+  list-style: none;
+  margin: 0 0 2.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: calc(4 * 3.1rem + 3 * 0.6rem);
+}
+
+.player-list li {
+  padding: 0.6rem 1rem;
+  font-size: 1.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 6px;
+}
+
+/* Highlights the current client's row. Applied at the <li> level so the
+   background always spans the full row width, whether or not this
+   player happens to hold the Owner tag. */
+.player-list li.is-you {
+  background: var(--maroon-faint);
+}
+
+.player-list li .owner-tag {
+  font-size: 0.95rem;
+  color: var(--maroon-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  min-width: 70px;
+  text-align: right;
+}
+
+/* Kick button — deliberately rougher/harsher than the rest of the UI:
+   jittery corner radii (not a clean radius) plus a double outline via
+   box-shadow, in a warning red instead of the maroon palette. */
+.btn-kick {
+  background: transparent;
+  color: #a33;
+  border: 2px solid #a33;
+  border-radius: 0;
+  box-shadow:
+    0 0 0 2px var(--beige-light),
+    0 0 0 4px #a33;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.35rem 0.8rem;
+  min-width: 70px;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.btn-kick:hover {
+  background: #a33;
+  color: var(--beige-light);
+  transform: translateY(-1px) rotate(-0.5deg);
+}
+
+.visibility-toggle {
+  transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.visibility-toggle.is-private {
+  background: var(--maroon);
+  color: var(--beige-light);
+}
+
+/* .btn-secondary:hover:not(:disabled) has slightly higher specificity
+   (three simple selectors vs. two), so without this override hovering a
+   private toggle would fall back to the generic faint-beige hover instead
+   of a deeper maroon. */
+.visibility-toggle.is-private:hover:not(:disabled) {
+  background: var(--maroon-dim);
+  color: var(--beige-light);
+}
+
+.code-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.code-display .digits {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.code-display .digit {
+  border: 2px solid var(--maroon);
+  border-radius: 6px;
+  width: 2.2rem;
+  height: 2.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+.waiting-note {
+  text-align: center;
+  color: var(--maroon-dim);
+  font-style: italic;
+  margin: 0 0 1rem;
+}
+
+/* --- Lobby: searching overlay --- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(244, 239, 225, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 20;
+}
+
+.overlay.open {
+  display: flex;
+}
+
+.overlay-box {
+  text-align: center;
+  font-size: 1.4rem;
+}
+
+.spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid var(--maroon-faint);
+  border-top-color: var(--maroon);
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

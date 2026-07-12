@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tank Wars — Menu</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+
+<script src="https://unpkg.com/colyseus.js@0.16.22/dist/colyseus.js"></script>
+</head>
+<body>
+
+<!-- ======================= MENU ======================= -->
+<section class="screen" id="screen-menu">
+  <h1>Tank Wars</h1>
+  <div class="playing-as" id="playingAsRow" style="display:none;">
+    Playing as <strong id="playingAsName"></strong>
+    <button id="changeNameBtn">(not you?)</button>
+  </div>
+  <div class="menu-stack">
+    <button class="btn-primary big" id="quickJoinBtn">Quick Join</button>
+    <div class="row-two">
+      <button class="btn-secondary" id="createLobbyBtn">Create Lobby</button>
+      <button class="btn-secondary" id="joinOthersBtn">Join Others</button>
+    </div>
+  </div>
+  <button class="back-link" id="backToLandingBtn">Back</button>
+</section>
+
+<!-- ======================= JOIN OTHERS ======================= -->
+<section class="screen" id="screen-join">
+  <h1>Join Others</h1>
+  <div class="tabs">
+    <button class="tab-btn active" id="tabPrivateBtn">Private Lobby</button>
+    <button class="tab-btn" id="tabPublicBtn">Public Lobby</button>
+  </div>
+
+  <div class="tab-panel active" id="panel-private">
+    <p style="text-align:center;">Enter code to join</p>
+    <input type="text" class="code-input" id="codeInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="0000" />
+    <p class="error-note" id="codeError"></p>
+    <div style="text-align:center;">
+      <button class="btn-primary" id="submitCodeBtn" style="padding:0.8rem 2.2rem; font-size:1.1rem;">Join</button>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-public">
+    <ul class="room-list" id="publicRoomList"></ul>
+    <p class="empty-note" id="publicListEmpty" style="display:none;">No public lobbies right now — try Quick Join.</p>
+  </div>
+
+  <div class="footer-row">
+    <button class="back-link" id="joinBackBtn">Back</button>
+    <button class="btn-primary" id="joinQuickJoinBtn">Quick Join</button>
+  </div>
+</section>
+
+<!-- ======================= ROOM (create / joined lobby) ======================= -->
+<section class="screen" id="screen-room">
+  <div class="room-box">
+    <div class="room-main">
+      <!-- Sidebar: Close/Leave Lobby (top); code + Public/Private toggle (bottom) -->
+      <aside class="room-sidebar">
+        <button class="btn-secondary" id="ownerCloseBtn" style="display:none;">Close Lobby</button>
+        <button class="btn-secondary" id="guestLeaveBtn" style="display:none;">Leave Lobby</button>
+
+        <div class="sidebar-bottom">
+          <div class="code-display" id="codeDisplay" style="display:none;">
+            <span>Code:</span>
+            <span class="digits" id="codeDigits"></span>
+          </div>
+          <button class="btn-secondary visibility-toggle" id="visibilityToggleBtn">Public</button>
+        </div>
+      </aside>
+
+      <!-- Main content: player list -->
+      <div class="room-content">
+        <ul class="player-list" id="playerList"></ul>
+        <p class="waiting-note" id="waitingNote" style="display:none;">Waiting for the host to start…</p>
+      </div>
+    </div>
+
+    <div class="footer-row">
+      <button class="back-link" id="roomBackBtn">Back</button>
+      <button class="btn-primary" id="startBtn" style="display:none;" disabled>Start</button>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= Quick Join overlay ======================= -->
+<div class="overlay" id="searchingOverlay">
+  <div class="overlay-box">
+    <div class="spinner"></div>
+    <p>Looking for players…</p>
+  </div>
+</div>
+
+<!-- ======================= Quick Join failed modal ======================= -->
+<div class="modal-backdrop" id="quickJoinFailBackdrop">
+  <div class="modal">
+    <h2>No game found</h2>
+    <p>Couldn't find a game right now. Do you want to create a new lobby?</p>
+    <div class="modal-actions">
+      <button class="btn-primary" id="quickJoinCreateBtn">Create Lobby</button>
+      <button class="btn-secondary" id="quickJoinCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= Nickname modal ======================= -->
+<div class="modal-backdrop" id="nicknameBackdrop">
+  <div class="modal">
+    <!-- returning-player view -->
+    <div id="modalReturning" style="display:none;">
+      <h2>Welcome back</h2>
+      <p>We noticed you've played as <strong id="returningName"></strong> before. Continue with this name?</p>
+      <div class="modal-actions">
+        <button class="btn-primary" id="continueSavedBtn">Continue as <span id="continueSavedName"></span></button>
+        <button class="btn-secondary" id="useDifferentBtn">Use a different name</button>
+      </div>
+    </div>
+
+    <!-- name entry view -->
+    <div id="modalEntry">
+      <h2>Choose a nickname</h2>
+      <input type="text" id="nicknameInput" maxlength="16" placeholder="Your nickname" />
+      <p class="error-note" id="nicknameError"></p>
+      <p class="note">Your nickname will be used to record scores on the global leaderboard.</p>
+      <label class="checkbox-row">
+        <input type="checkbox" id="rememberMeCheckbox" checked />
+        Save my name &amp; scores on this device
+      </label>
+      <div class="modal-actions">
+        <button class="btn-primary" id="confirmNicknameBtn">Continue</button>
+        <button class="btn-secondary" id="cancelNicknameBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------
+  // Colyseus client
+  // ---------------------------------------------------------------
+  const client = new Colyseus.Client(
+    (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+      ? "ws://localhost:2567"
+      : "wss://tank-game-server-kj3p.onrender.com"
+  );
+
+  let room = null;           // current joined room, if any
+  let mySessionId = null;
+
+  // ---------------------------------------------------------------
+  // Screen router — reflects current screen in the URL query string
+  // ---------------------------------------------------------------
+  const screens = ["menu", "join", "room"];
+
+  function showScreen(name, extraParams) {
+    screens.forEach((s) => {
+      document.getElementById("screen-" + s).classList.toggle("active", s === name);
+    });
+    const params = new URLSearchParams(extraParams || {});
+    params.set("screen", name);
+    history.replaceState(null, "", "?" + params.toString());
+  }
+
+  function initialScreenFromURL() {
+    const params = new URLSearchParams(location.search);
+    const screen = params.get("screen");
+    return screen === "join" ? "join" : "menu";
+
+  }
+
+  // ---------------------------------------------------------------
+  // Nickname handling (localStorage + modal)
+  // ---------------------------------------------------------------
+  const NICK_KEY = "tank-nickname";
+  let pendingAction = null; // function to run once we have a nickname
+  let sessionNickname = null; // nickname for THIS visit, whether saved or not
+
+  function getSavedNickname() {
+    return localStorage.getItem(NICK_KEY);
+  }
+
+  function updatePlayingAsRow() {
+    const row = document.getElementById("playingAsRow");
+    if (sessionNickname) {
+      row.style.display = "block";
+      document.getElementById("playingAsName").textContent = sessionNickname;
+    } else {
+      row.style.display = "none";
+    }
+  }
+
+  function openNicknameModal() {
+    const saved = getSavedNickname();
+    const backdrop = document.getElementById("nicknameBackdrop");
+    const returningView = document.getElementById("modalReturning");
+    const entryView = document.getElementById("modalEntry");
+    document.getElementById("nicknameError").textContent = "";
+
+    if (saved && !sessionNickname) {
+      returningView.style.display = "block";
+      entryView.style.display = "none";
+      document.getElementById("returningName").textContent = saved;
+      document.getElementById("continueSavedName").textContent = saved;
+    } else {
+      returningView.style.display = "none";
+      entryView.style.display = "block";
+      document.getElementById("nicknameInput").value = sessionNickname || "";
+    }
+    backdrop.classList.add("open");
+  }
+
+  function closeNicknameModal() {
+    document.getElementById("nicknameBackdrop").classList.remove("open");
+  }
+
+  function requireNickname(action) {
+    if (sessionNickname) { action(); return; }
+    pendingAction = action;
+    openNicknameModal();
+  }
+
+  document.getElementById("continueSavedBtn").addEventListener("click", () => {
+    sessionNickname = getSavedNickname();
+    updatePlayingAsRow();
+    closeNicknameModal();
+    if (pendingAction) { pendingAction(); pendingAction = null; }
+  });
+
+  document.getElementById("useDifferentBtn").addEventListener("click", () => {
+    document.getElementById("modalReturning").style.display = "none";
+    document.getElementById("modalEntry").style.display = "block";
+    document.getElementById("nicknameInput").value = "";
+    document.getElementById("nicknameInput").focus();
+  });
+
+  document.getElementById("confirmNicknameBtn").addEventListener("click", () => {
+    const val = document.getElementById("nicknameInput").value.trim();
+    if (!val) {
+      document.getElementById("nicknameError").textContent = "Enter a nickname first.";
+      return;
+    }
+    sessionNickname = val.slice(0, 16);
+    if (document.getElementById("rememberMeCheckbox").checked) {
+      localStorage.setItem(NICK_KEY, sessionNickname);
+    } else {
+      localStorage.removeItem(NICK_KEY);
+    }
+    updatePlayingAsRow();
+    closeNicknameModal();
+    if (pendingAction) { pendingAction(); pendingAction = null; }
+  });
+
+  document.getElementById("cancelNicknameBtn").addEventListener("click", () => {
+    pendingAction = null;
+    closeNicknameModal();
+  });
+
+  document.getElementById("changeNameBtn").addEventListener("click", () => {
+    sessionNickname = null;
+    requireNickname(() => {}); // just reopens the picker; no action queued
+  });
+
+  // ---------------------------------------------------------------
+  // Menu screen actions
+  // ---------------------------------------------------------------
+  document.getElementById("backToLandingBtn").addEventListener("click", () => {
+    window.location.href = "../index.html";
+  });
+
+  document.getElementById("quickJoinBtn").addEventListener("click", () => {
+    requireNickname(doQuickJoin);
+  });
+
+  document.getElementById("createLobbyBtn").addEventListener("click", () => {
+    requireNickname(doCreateLobby);
+  });
+
+  document.getElementById("joinOthersBtn").addEventListener("click", () => {
+    showScreen("join");
+    refreshPublicRoomList();
+  });
+
+  // ---------------------------------------------------------------
+  // Quick Join
+  // ---------------------------------------------------------------
+  const QUICK_JOIN_MIN_DISPLAY_MS = 900; // keep the "searching" feel even on a fast/instant response
+
+  async function doQuickJoin() {
+    const overlay = document.getElementById("searchingOverlay");
+    overlay.classList.add("open");
+    const startedAt = Date.now();
+
+    try {
+      // Look up public, non-full rooms ourselves instead of relying on
+      // joinOrCreate — joinOrCreate auto-creates a room when none match,
+      // which means it can never actually "fail to find a game" the way
+      // we want it to for showing the create-lobby prompt.
+      const response = await client.http.get("/rooms/tank_room");
+      const rooms = response.data || [];
+      const openRooms = rooms.filter(
+        (r) => r.metadata && r.metadata.isPrivate === false && r.clients < r.maxClients
+      );
+
+      if (openRooms.length === 0) {
+        await waitOutMinDisplay(startedAt);
+        overlay.classList.remove("open");
+        showQuickJoinFailModal();
+        return;
+      }
+
+      // Pick a random open lobby rather than always the first in the list,
+      // so quick join doesn't pile everyone into the same one room.
+      const pick = openRooms[Math.floor(Math.random() * openRooms.length)];
+      const joined = await client.joinById(pick.roomId, { nickname: sessionNickname });
+
+      await waitOutMinDisplay(startedAt);
+      overlay.classList.remove("open");
+      attachRoom(joined);
+    } catch (err) {
+      console.error("Quick join failed:", err);
+      await waitOutMinDisplay(startedAt);
+      overlay.classList.remove("open");
+      showQuickJoinFailModal();
+    }
+  }
+
+  // Pads out the overlay so it never flashes for less than
+  // QUICK_JOIN_MIN_DISPLAY_MS, even if the server responded almost instantly.
+  function waitOutMinDisplay(startedAt) {
+    const elapsed = Date.now() - startedAt;
+    const remaining = QUICK_JOIN_MIN_DISPLAY_MS - elapsed;
+    return remaining > 0 ? new Promise((res) => setTimeout(res, remaining)) : Promise.resolve();
+  }
+
+  function showQuickJoinFailModal() {
+    document.getElementById("quickJoinFailBackdrop").classList.add("open");
+  }
+
+  document.getElementById("quickJoinCreateBtn").addEventListener("click", () => {
+    document.getElementById("quickJoinFailBackdrop").classList.remove("open");
+    doCreateLobby();
+  });
+
+  document.getElementById("quickJoinCancelBtn").addEventListener("click", () => {
+    document.getElementById("quickJoinFailBackdrop").classList.remove("open");
+  });
+
+  // ---------------------------------------------------------------
+  // Create Lobby
+  // ---------------------------------------------------------------
+  async function doCreateLobby() {
+    try {
+      const created = await client.create("tank_room", {
+        isPrivate: false,
+        nickname: sessionNickname,
+      });
+      attachRoom(created);
+    } catch (err) {
+      console.error("Create lobby failed:", err);
+      alert("Couldn't create a lobby right now. Please try again.");
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Join Others — tabs
+  // ---------------------------------------------------------------
+  document.getElementById("tabPrivateBtn").addEventListener("click", () => setJoinTab("private"));
+  document.getElementById("tabPublicBtn").addEventListener("click", () => setJoinTab("public"));
+
+  function setJoinTab(tab) {
+    document.getElementById("tabPrivateBtn").classList.toggle("active", tab === "private");
+    document.getElementById("tabPublicBtn").classList.toggle("active", tab === "public");
+    document.getElementById("panel-private").classList.toggle("active", tab === "private");
+    document.getElementById("panel-public").classList.toggle("active", tab === "public");
+    if (tab === "public") refreshPublicRoomList();
+  }
+
+  document.getElementById("joinBackBtn").addEventListener("click", () => showScreen("menu"));
+
+  document.getElementById("joinQuickJoinBtn").addEventListener("click", () => {
+    requireNickname(doQuickJoin);
+  });
+
+  // Code input: digits only
+  document.getElementById("codeInput").addEventListener("input", (e) => {
+    e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4);
+  });
+
+  document.getElementById("submitCodeBtn").addEventListener("click", () => {
+    requireNickname(doJoinByCode);
+  });
+
+  async function doJoinByCode() {
+    const code = document.getElementById("codeInput").value.trim();
+    const errorEl = document.getElementById("codeError");
+    errorEl.textContent = "";
+
+    if (code.length !== 4) {
+      errorEl.textContent = "Enter the 4-digit code.";
+      return;
+    }
+
+    try {
+      const response = await client.http.get("/rooms/tank_room");
+      const rooms = response.data || [];
+      const match = rooms.find((r) => r.metadata && r.metadata.code === code);
+      if (!match) {
+        errorEl.textContent = "No lobby found with that code.";
+        return;
+      }
+      const joined = await client.joinById(match.roomId, {
+        nickname: sessionNickname,
+        code,
+      });
+      attachRoom(joined);
+    } catch (err) {
+      console.error("Join by code failed:", err);
+      errorEl.textContent = "That lobby is no longer available.";
+    }
+  }
+
+  // Public room list
+  async function refreshPublicRoomList() {
+    const listEl = document.getElementById("publicRoomList");
+    const emptyEl = document.getElementById("publicListEmpty");
+    listEl.innerHTML = "";
+
+    let rooms = [];
+    try {
+      const response = await client.http.get("/rooms/tank_room");
+      rooms = response.data || [];
+    } catch (err) {
+      console.error("Failed to fetch room list:", err);
+      emptyEl.textContent = "Couldn't load public lobbies right now — try Quick Join instead.";
+      emptyEl.style.display = "block";
+      return;
+    }
+
+    const publicRooms = rooms.filter((r) => r.metadata && r.metadata.isPrivate === false);
+    emptyEl.style.display = publicRooms.length === 0 ? "block" : "none";
+
+    publicRooms.forEach((r) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      const owner = (r.metadata && r.metadata.ownerNickname) || "Someone";
+      const count = (r.metadata && r.metadata.playerCount) || 0;
+      btn.textContent = owner + "'s Lobby  (" + count + "/4)";
+      btn.addEventListener("click", () => {
+        requireNickname(() => doJoinPublicRoom(r.roomId));
+      });
+      li.appendChild(btn);
+      listEl.appendChild(li);
+    });
+  }
+
+  async function doJoinPublicRoom(roomId) {
+    try {
+      const joined = await client.joinById(roomId, { nickname: sessionNickname });
+      attachRoom(joined);
+    } catch (err) {
+      console.error("Join failed:", err);
+      alert("That lobby just filled up or closed. Pick another.");
+      refreshPublicRoomList();
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Room screen — shared by Create Lobby, Quick Join, and Join Others
+  // ---------------------------------------------------------------
+  function attachRoom(joinedRoom) {
+    room = joinedRoom;
+    mySessionId = room.sessionId;
+
+    room.onStateChange(renderRoom);
+
+    room.onMessage("gameStart", () => {
+      sessionStorage.setItem("tankRoomId", room.id);
+      sessionStorage.setItem("tankReconnectToken", room.reconnectionToken);
+      sessionStorage.setItem("tankSessionId", mySessionId);
+      window.location.href = "../game/index.html";
+    });
+
+    room.onMessage("lobbyClosed", () => {
+      alert("The host closed this lobby.");
+      cleanupRoom();
+      showScreen("menu");
+    });
+
+    room.onMessage("kicked", () => {
+      alert("You were removed from the lobby by the host.");
+      cleanupRoom();
+      showScreen("menu");
+    });
+
+    room.onLeave(() => {
+      cleanupRoom();
+    });
+
+    showScreen("room");
+    renderRoom();
+  }
+
+  function cleanupRoom() {
+    room = null;
+    mySessionId = null;
+  }
+
+  function renderRoom() {
+    // room.state itself is assigned as soon as join() resolves, but its
+    // sub-fields (like players, a MapSchema) can arrive a moment later
+    // as the first state sync completes. Bail out safely until then —
+    // onStateChange will re-fire renderRoom the instant it's ready.
+    if (!room || !room.state || !room.state.players) return;
+    const state = room.state;
+    const me = state.players.get(mySessionId);
+    const isOwner = !!(me && me.isOwner);
+
+    // Player list
+    const listEl = document.getElementById("playerList");
+    listEl.innerHTML = "";
+    state.players.forEach((player, sessionId) => {
+      const li = document.createElement("li");
+      li.classList.toggle("is-you", sessionId === mySessionId);
+
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = player.nickname;
+      li.appendChild(nameSpan);
+      if (player.isOwner) {
+        const tag = document.createElement("span");
+        tag.className = "owner-tag";
+        tag.textContent = "Owner";
+        li.appendChild(tag);
+      } else if (isOwner) {
+        const kickBtn = document.createElement("button");
+        kickBtn.className = "btn-kick";
+        kickBtn.textContent = "Kick";
+        kickBtn.addEventListener("click", () => {
+          if (room) room.send("kickPlayer", { sessionId });
+        });
+        li.appendChild(kickBtn);
+      }
+      listEl.appendChild(li);
+    });
+
+    // Owner vs guest controls
+    document.getElementById("ownerCloseBtn").style.display = isOwner ? "inline-block" : "none";
+    document.getElementById("guestLeaveBtn").style.display = isOwner ? "none" : "inline-block";
+    document.getElementById("startBtn").style.display = isOwner ? "inline-block" : "none";
+    document.getElementById("waitingNote").style.display = isOwner ? "none" : "block";
+
+    const enoughPlayers = state.players.size >= 2;
+    document.getElementById("startBtn").disabled = !enoughPlayers;
+
+    // Visibility toggle — single button, label + style reflect current state.
+    // Owner can change it; guests see it as a static, disabled state.
+    const visBtn = document.getElementById("visibilityToggleBtn");
+    visBtn.textContent = state.isPrivate ? "Private" : "Public";
+    visBtn.classList.toggle("is-private", state.isPrivate);
+    visBtn.disabled = !isOwner;
+
+    const codeDisplay = document.getElementById("codeDisplay");
+    if (state.isPrivate && state.code) {
+      codeDisplay.style.display = "flex";
+      const digitsEl = document.getElementById("codeDigits");
+      digitsEl.innerHTML = "";
+      state.code.split("").forEach((d) => {
+        const span = document.createElement("span");
+        span.className = "digit";
+        span.textContent = d;
+        digitsEl.appendChild(span);
+      });
+    } else {
+      codeDisplay.style.display = "none";
+    }
+  }
+
+  document.getElementById("visibilityToggleBtn").addEventListener("click", () => {
+    if (!room) return;
+    room.send("setVisibility", { isPrivate: !room.state.isPrivate });
+  });
+
+  document.getElementById("ownerCloseBtn").addEventListener("click", () => {
+    if (room) room.send("closeLobby");
+  });
+
+  document.getElementById("guestLeaveBtn").addEventListener("click", () => {
+    if (room) room.leave();
+    cleanupRoom();
+    showScreen("menu");
+  });
+
+  document.getElementById("roomBackBtn").addEventListener("click", () => {
+    if (room) room.leave();
+    cleanupRoom();
+    showScreen("menu");
+  });
+
+  document.getElementById("startBtn").addEventListener("click", () => {
+    if (room) room.send("start");
+  });
+
+  // ---------------------------------------------------------------
+  // Init
+  // ---------------------------------------------------------------
+  updatePlayingAsRow();
+  showScreen(initialScreenFromURL());
+  if (initialScreenFromURL() === "join") refreshPublicRoomList();
+})();
+</script>
+
+</body>
+</html>
