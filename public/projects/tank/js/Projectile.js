@@ -42,14 +42,13 @@ class Projectile {
       this.angle = 270 + tank.turretAngle;
       this.power = tank.power;
 
-      this.init = this.power * 0.08 + 1; // initial speed, range ~1-9 px/frame equiv
-      // scaled to px/sec (×FPS) so tick() can use real dt instead of frame counts
-      this.velX = this.init * GameLogic.FPS * cos(radians(this.angle));
-      this.velY = -this.init * GameLogic.FPS * sin(radians(this.angle));
+      this.init = this.power * 0.08 + 1; // initial velocity, range ~1-9px
+      this.velX = this.init * cos(radians(this.angle));
+      this.velY = -this.init * sin(radians(this.angle));
     }
   }
-  
-  tick(game, tank, dt) {
+
+  tick(game, tank) {
     if (this.x === -50 && this.y === -50) {
       this.velX = 0;
       this.velY = 0;
@@ -80,9 +79,9 @@ class Projectile {
       this.x = -50;
       this.y = -50;
     } else {
-      this.x += (this.velX + game.wind * 0.03) * dt; // wind: w*0.03 px/sec
-      this.y -= this.velY * dt;
-      this.velY -= 3.6 * dt; // gravity: 3.6 px/sec^2
+      this.x += this.velX + (game.wind * 0.03) / GameLogic.FPS; // wind: w*0.03 px/sec
+      this.y -= this.velY;
+      this.velY -= 3.6 / GameLogic.FPS; // gravity: 3.6 px/sec^2
     }
   }
 
