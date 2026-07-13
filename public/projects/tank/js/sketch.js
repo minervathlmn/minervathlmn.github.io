@@ -122,10 +122,15 @@ function drawHUD() {
   const tank = game.players.get(game.currentPlayer);
   if (!tank) return;
 
+  const turnRowY = 22;
+  // wind row sits below the turn label instead of sharing its y - they
+  // used to both draw at y=22 and overlap into an unreadable mess
+  const windRowY = turnRowY + 32;
+
   textSize(16);
   textAlign(RIGHT, TOP);
   fill(...UI_THEME.hudText);
-  text(`Player ${game.currentPlayer}'s turn`, Board.WIDTH - 30, 22);
+  text(`Player ${game.currentPlayer}'s turn`, Board.WIDTH - 30, turnRowY);
 
   hud.tank = tank; // keep it pointed at whoever's turn it is
   hud.draw();
@@ -134,12 +139,13 @@ function drawHUD() {
   if (game.wind !== 0) {
     const windImg = game.wind < 0 ? sprites['wind-1.png'] : sprites['wind.png'];
     if (windImg) {
-      image(windImg, Board.WIDTH - 115, 8, Board.CELLSIZE * 1.5, Board.CELLSIZE * 1.5);
+      // keeps the same 14px offset above its number that the original had
+      image(windImg, Board.WIDTH - 115, windRowY - 14, Board.CELLSIZE * 1.5, Board.CELLSIZE * 1.5);
     }
   }
   textAlign(RIGHT, TOP);
   fill(...UI_THEME.hudText);
-  text(Math.round(game.wind), Board.WIDTH - 30, 22);
+  text(Math.round(game.wind), Board.WIDTH - 30, windRowY);
   textAlign(LEFT, TOP);
 }
 

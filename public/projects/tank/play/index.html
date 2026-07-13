@@ -40,6 +40,7 @@
 
   <div class="tab-panel active" id="panel-private">
     <p style="text-align:center;">Enter code to join</p>
+    <!-- <input type="text" class="code-input" id="codeInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="✱✱✱✱" /> -->
     <input type="text" class="code-input" id="codeInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="0000" />
     <p class="error-note" id="codeError"></p>
     <div style="text-align:center;">
@@ -174,8 +175,13 @@
   function initialScreenFromURL() {
     const params = new URLSearchParams(location.search);
     const screen = params.get("screen");
-    return screen === "join" ? "join" : "menu";
-
+    // "room" is never valid on a fresh page load — it reflects a live
+    // Colyseus connection that doesn't survive a refresh (there's no
+    // lobby reconnect token, unlike the in-game screen). Trusting it
+    // here would show the room screen with room === null, which is the
+    // "broken page with only Public and Back" you were seeing. Treat a
+    // refreshed room URL the same as landing on the site fresh.
+    return "menu";
   }
 
   // ---------------------------------------------------------------
@@ -288,6 +294,7 @@
   document.getElementById("joinOthersBtn").addEventListener("click", () => {
     showScreen("join");
     refreshPublicRoomList();
+    document.getElementById("codeInput").focus();
   });
 
   // ---------------------------------------------------------------
@@ -383,6 +390,7 @@
     document.getElementById("panel-private").classList.toggle("active", tab === "private");
     document.getElementById("panel-public").classList.toggle("active", tab === "public");
     if (tab === "public") refreshPublicRoomList();
+    if (tab === "private") document.getElementById("codeInput").focus();
   }
 
   document.getElementById("joinBackBtn").addEventListener("click", () => showScreen("menu"));
@@ -612,9 +620,15 @@
   // ---------------------------------------------------------------
   // Init
   // ---------------------------------------------------------------
+  // Restore a saved nickname on load so "Playing as X (not you?)" survives
+  // a refresh instead of only appearing after going through the modal.
+  sessionNickname = getSavedNickname();
   updatePlayingAsRow();
   showScreen(initialScreenFromURL());
-  if (initialScreenFromURL() === "join") refreshPublicRoomList();
+  if (initialScreenFromURL() === "join") {
+    refreshPublicRoomList();
+    document.getElementById("codeInput").focus();
+  }
 })();
 </script>
 

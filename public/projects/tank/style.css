@@ -304,13 +304,14 @@ input[type="text"]:focus {
   display: block;
 }
 
-.code-input {
+input[type="text"].code-input {
   font-size: 2rem;
   letter-spacing: 1.2rem;
-  text-align: center;
-  max-width: 260px;
+  text-align: left;
+  display: block;
+  width: calc(4ch + 6rem + 0.3rem);
   margin: 0 auto 1rem;
-  padding-left: 1.6rem; /* visually re-center given letter-spacing */
+  padding: 0.7rem 0 0.7rem 1.2rem;
 }
 
 .room-list {
@@ -462,6 +463,16 @@ input[type="text"]:focus {
   text-align: right;
 }
 
+/* Fixed-width slot at the end of each player row. Reserves the same
+   space whether it's holding the owner tag, a kick button, or nothing —
+   keeps row width (and therefore the whole room-box, which sizes to
+   content) consistent no matter who's viewing the lobby. */
+.player-list li .row-end {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 92px;
+}
+
 /* Kick button — deliberately rougher/harsher than the rest of the UI:
    jittery corner radii (not a clean radius) plus a double outline via
    box-shadow, in a warning red instead of the maroon palette. */
@@ -469,7 +480,7 @@ input[type="text"]:focus {
   background: transparent;
   color: #a33;
   border: 2px solid #a33;
-  border-radius: 0;
+  border-radius: 2px 7px 3px 8px / 7px 3px 8px 2px;
   box-shadow:
     0 0 0 2px var(--beige-light),
     0 0 0 4px #a33;
