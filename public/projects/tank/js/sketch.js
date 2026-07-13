@@ -1,14 +1,17 @@
 /**
- * p5 entry point for the tank game. Mirrors checkers' sketch.js role:
- * owns the canvas, input handling, and the render loop. All rules/state
- * live in GameLogic - this file only decides how to draw the current
- * state and which GameLogic/Tank method a keypress should trigger.
+ * p5 entry point for the tank game. Owns the canvas and render loop.
+ * All rules/state live in GameLogic. Input is now network-gated: only
+ * the active player's key presses do anything, and even then they only
+ * SEND a message — the actual Tank mutation happens uniformly for every
+ * client inside bindNetworkHandlers(), once the server relays it back.
+ * This keeps all four screens running identical code on identical input.
  */
 let game;
 let hud;
 let configData;
 let levelLayouts = {};
-let sprites = {}; // filename -> p5.Image | null, filled in asynchronously
+let sprites = {};
+let myLetter = null; // this client's tank id ('A'/'B'/'C'/'D'), fixed for the whole game
 
 const SPRITE_FILES = [
   'basic.png', 'desert.png', 'forest.png', 'hills.png', 'snow.png',
@@ -24,20 +27,77 @@ function preload() {
 }
 
 function setup() {
+  noLoop(); // draw() stays paused until the network handshake resolves below
+
   const cnv = createCanvas(Board.WIDTH, Board.HEIGHT);
   cnv.parent('canvas-container');
   frameRate(GameLogic.FPS);
   noStroke();
 
-  // load sprites without blocking the game from starting - draw() falls
-  // back to placeholder shapes for any sprite that's still null
   for (const file of SPRITE_FILES) {
     sprites[file] = null;
     loadSpriteSafe(`../assets/${file}`, img => { sprites[file] = img; });
   }
 
-  game = new GameLogic(configData, levelLayouts, sprites);
-  hud = new PlayerHUD(16, 16, game.players.get(game.currentPlayer), sprites);
+  TankNetwork.ready.then(() => {
+    game = new GameLogic(configData, levelLayouts, sprites, TankNetwork.getSeed());
+
+    const myIndex = TankNetwork.getMyLetterIndex();
+    myLetter = game.playerIDs[myIndex] ?? game.playerIDs[0];
+
+    hud = new PlayerHUD(16, 16, game.players.get(myLetter), sprites);
+
+    bindNetworkHandlers();
+    loop();
+  });
+}
+
+// Applies input relayed from the server to whichever tank currently
+// holds the turn. Runs identically on every client, including the one
+// that originally sent the action.
+function bindNetworkHandlers() {
+  TankNetwork.onAction((type) => {
+    const tank = game.players.get(game.currentPlayer);
+    if (!tank) return;
+
+    switch (type) {
+      case "rotateLeft": tank.rotateLeft(); break;
+      case "rotateRight": tank.rotateRight(); break;
+      case "moveLeft": tank.moveLeft(); break;
+      case "moveRight": tank.moveRight(); break;
+      case "morePower": tank.morePower(); break;
+      case "lessPower": tank.lessPower(); break;
+      case "stopAdjustment": tank.stopAdjustment(); break;
+      case "repair": tank.repair(); break;
+      case "addFuel": tank.addFuel(); break;
+      case "addParachute": tank.addParachute(); break;
+      case "xtra": tank.projectile.xtra(tank); break;
+      case "fire":
+        tank.stopAdjustment();
+        tank.projectile.setFire(game, tank);
+        game.playerOrder();
+        break;
+    }
+  });
+
+  TankNetwork.onRestart(() => {
+    game.restartGame();
+  });
+}
+
+// Read-only preview of what GameLogic.playerOrder() would resolve
+// `currentPlayer` to next, WITHOUT mutating game state. Used so the
+// firing client can tell the server who's up next (skipping anyone
+// eliminated) without every client double-running the turn-advance math.
+function peekNextPlayer(game) {
+  let idx = game.playerIndex;
+  let guard = 0;
+  while (guard++ < 1000) {
+    const candidate = game.playerIDs[idx % game.playerIDs.length];
+    if (game.remainingTanks.includes(candidate)) return candidate;
+    idx++;
+  }
+  return game.currentPlayer;
 }
 
 function draw() {
@@ -102,7 +162,7 @@ function drawTanks() {
     if (!tank) continue;
 
     if (game.damagedTanks.has(tank)) {
-      tank.fall(); // explosion destroyed the ground under it -> falls
+      tank.fall();
     } else {
       tank.updatePosition(game);
     }
@@ -119,27 +179,25 @@ function drawTanks() {
 }
 
 function drawHUD() {
-  const tank = game.players.get(game.currentPlayer);
-  if (!tank) return;
-
   const turnRowY = 22;
-  // wind row sits below the turn label instead of sharing its y - they
-  // used to both draw at y=22 and overlap into an unreadable mess
   const windRowY = turnRowY + 32;
 
   textSize(16);
   textAlign(RIGHT, TOP);
   fill(...UI_THEME.hudText);
-  text(`Player ${game.currentPlayer}'s turn`, Board.WIDTH - 30, turnRowY);
+  const turnLabel = TankNetwork.isMyTurn()
+    ? `Your turn (Player ${game.currentPlayer})`
+    : `Player ${game.currentPlayer}'s turn`;
+  text(turnLabel, Board.WIDTH - 30, turnRowY);
 
-  hud.tank = tank; // keep it pointed at whoever's turn it is
+  // Always show MY tank's panel, tinted with my colour — not whoever's
+  // turn it currently is.
+  hud.tank = game.players.get(myLetter);
   hud.draw();
 
-  /* wind */
   if (game.wind !== 0) {
     const windImg = game.wind < 0 ? sprites['wind-1.png'] : sprites['wind.png'];
     if (windImg) {
-      // keeps the same 14px offset above its number that the original had
       image(windImg, Board.WIDTH - 115, windRowY - 14, Board.CELLSIZE * 1.5, Board.CELLSIZE * 1.5);
     }
   }
@@ -192,55 +250,55 @@ function mousePressed() {
 
   const { bx, by, bw, bh } = restartButtonBounds();
   if (mouseX >= bx && mouseX <= bx + bw && mouseY >= by && mouseY <= by + bh) {
-    game.restartGame();
+    TankNetwork.sendRestart();
   }
 }
 
 function keyPressed() {
-  if (!game || game.isLevelOver()) return;
+  if (!game || game.isLevelOver() || !TankNetwork.isMyTurn()) return;
 
   const tank = game.players.get(game.currentPlayer);
   if (!tank || tank.isFalling()) return;
 
-  if (keyCode === UP_ARROW) tank.rotateLeft();
-  else if (keyCode === DOWN_ARROW) tank.rotateRight();
+  if (keyCode === UP_ARROW) TankNetwork.sendAction("rotateLeft");
+  else if (keyCode === DOWN_ARROW) TankNetwork.sendAction("rotateRight");
 
-  if (keyCode === LEFT_ARROW) tank.moveLeft();
-  else if (keyCode === RIGHT_ARROW) tank.moveRight();
+  if (keyCode === LEFT_ARROW) TankNetwork.sendAction("moveLeft");
+  else if (keyCode === RIGHT_ARROW) TankNetwork.sendAction("moveRight");
 
-  if (key === 'w' || key === 'W') tank.morePower();
-  else if (key === 's' || key === 'S') tank.lessPower();
+  if (key === 'w' || key === 'W') TankNetwork.sendAction("morePower");
+  else if (key === 's' || key === 'S') TankNetwork.sendAction("lessPower");
 
-  return false; // stop arrow keys from scrolling the page
+  return false;
 }
 
 function keyReleased() {
   if (!game) return;
 
   if (game.isLevelOver()) {
-    if (key === 'r' || key === 'R') game.restartGame();
+    if (key === 'r' || key === 'R') TankNetwork.sendRestart();
     return;
   }
+
+  if (!TankNetwork.isMyTurn()) return;
 
   const tank = game.players.get(game.currentPlayer);
   if (!tank || tank.isFalling()) return;
 
   const movementKeys = [UP_ARROW, DOWN_ARROW, LEFT_ARROW, RIGHT_ARROW];
   if (movementKeys.includes(keyCode) || 'wWsS'.includes(key)) {
-    tank.stopAdjustment();
+    TankNetwork.sendAction("stopAdjustment");
   }
 
   if (keyCode === 32) { // space: fire and pass turn
-    tank.stopAdjustment();
-    tank.projectile.setFire(game, tank);
-    game.playerOrder();
+    const nextLetter = peekNextPlayer(game);
+    TankNetwork.sendAction("fire", { nextLetter });
   }
 
-  // power-ups
-  if (key === 'r' || key === 'R') tank.repair();
-  if (key === 'f' || key === 'F') tank.addFuel();
-  if (key === 'p' || key === 'P') tank.addParachute();
-  if (key === 'x' || key === 'X') tank.projectile.xtra(tank);
+  if (key === 'r' || key === 'R') TankNetwork.sendAction("repair");
+  if (key === 'f' || key === 'F') TankNetwork.sendAction("addFuel");
+  if (key === 'p' || key === 'P') TankNetwork.sendAction("addParachute");
+  if (key === 'x' || key === 'X') TankNetwork.sendAction("xtra");
 
   return false;
 }

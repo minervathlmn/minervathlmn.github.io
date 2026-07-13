@@ -3,15 +3,24 @@
  * turn order, wind, level progression, and scoring. Rendering and input
  * handling live in sketch.js instead, the same split checkers uses
  * between GameLogic.js and sketch.js.
+ *
+ * MULTIPLAYER NOTE: `seed` drives a deterministic RNG (see Rng.js) so
+ * every client's "random" wind comes out identical. Without this, each
+ * client would roll its own Math.random() and desync on turn 1.
  */
 class GameLogic {
   static FPS = 30;
   static INITIAL_PARACHUTES = 1;
 
-  constructor(config, levelLayouts, sprites) {
+  constructor(config, levelLayouts, sprites, seed) {
     this.config = config;
     this.levelLayouts = levelLayouts; // { 'level1.txt': [lines], ... }
     this.sprites = sprites; // shared sprite cache from sketch.js (may still be loading)
+
+    // Falls back to Date.now() only for local/offline hot-seat testing
+    // (no server involved). In multiplayer, sketch.js always passes the
+    // server-issued seed here.
+    this.rng = createRng(seed ?? Date.now());
 
     this.currentLevel = 1; // 1-indexed, matches App.java
     this.board = new Board();
@@ -72,7 +81,7 @@ class GameLogic {
       this.players.set(start.id, tank);
     }
 
-    this.wind = Math.floor(Math.random() * 71) - 35; // -35..35
+    this.wind = Math.floor(this.rng() * 71) - 35; // -35..35
 
     // JS Map iterates in insertion order (board-scan order), but Java's
     // HashMap<Character,Tank> happened to iterate single-letter keys
@@ -105,7 +114,7 @@ class GameLogic {
       }
     }
 
-    this.wind += Math.floor(Math.random() * 11) - 5; // -5..5 drift
+    this.wind += Math.floor(this.rng() * 11) - 5; // -5..5 drift
     this.playerIndex++;
   }
 

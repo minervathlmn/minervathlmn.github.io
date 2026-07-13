@@ -181,7 +181,7 @@
     // here would show the room screen with room === null, which is the
     // "broken page with only Public and Back" you were seeing. Treat a
     // refreshed room URL the same as landing on the site fresh.
-    return "menu";
+    return screen === "room" ? "room" : "menu";
   }
 
   // ---------------------------------------------------------------
@@ -491,10 +491,12 @@
 
     room.onStateChange(renderRoom);
 
-    room.onMessage("gameStart", () => {
+    room.onMessage("gameStart", (payload) => {
       sessionStorage.setItem("tankRoomId", room.id);
       sessionStorage.setItem("tankReconnectToken", room.reconnectionToken);
       sessionStorage.setItem("tankSessionId", mySessionId);
+      sessionStorage.setItem("tankTurnOrder", JSON.stringify(payload.turnOrder));
+      sessionStorage.setItem("tankSeed", String(payload.seed));
       window.location.href = "../game/index.html";
     });
 
