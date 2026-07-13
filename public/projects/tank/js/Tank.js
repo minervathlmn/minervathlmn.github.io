@@ -172,60 +172,60 @@ class Tank {
     this.lessPowerFlag = false;
   }
 
-  tick(game) {
-    const turretPsDeg = degrees(3); // turret movement per second
-    const tankPs = 60; // tank movement per second (px)
-    const powerPs = 36; // power change per second
+  tick(game, dt) {
+    const turretPsDeg = degrees(3); // turret degrees/sec
+    const tankPs = 60;              // tank px/sec
+    const powerPs = 36;             // power/sec
 
     if (!this.falling) {
       if (this.rotateLeftFlag) {
-        const perFrame = turretPsDeg / GameLogic.FPS;
+        const delta = turretPsDeg * dt;
         if (this.turretAngle > -90) {
-          this.turretAngle -= perFrame;
-          if (this.turretAngle - perFrame <= -90) this.turretAngle = -90;
+          this.turretAngle -= delta;
+          if (this.turretAngle <= -90) this.turretAngle = -90;
           this.adjustTurret(this.turretAngle);
         }
       } else if (this.rotateRightFlag) {
-        const perFrame = turretPsDeg / GameLogic.FPS;
+        const delta = turretPsDeg * dt;
         if (this.turretAngle < 90) {
-          this.turretAngle += perFrame;
-          if (this.turretAngle - perFrame >= 90) this.turretAngle = 90;
+          this.turretAngle += delta;
+          if (this.turretAngle >= 90) this.turretAngle = 90;
           this.adjustTurret(this.turretAngle);
         }
       } else if (this.moveLeftFlag) {
-        const perFrame = Math.floor(tankPs / GameLogic.FPS);
-        if (this.x - perFrame >= 0 && this.fuel - perFrame >= 0) {
-          this.x -= perFrame;
-          this.fuel -= perFrame;
+        const delta = tankPs * dt;
+        if (this.x - delta >= 0 && this.fuel - delta >= 0) {
+          this.x -= delta;
+          this.fuel -= delta;
           this.updatePosition(game);
           if (this.y >= Board.HEIGHT) this.selfDestruct(game, 1);
         }
       } else if (this.moveRightFlag) {
-        const perFrame = Math.floor(tankPs / GameLogic.FPS);
-        if (this.x + perFrame < Board.WIDTH && this.fuel - perFrame >= 0) {
-          this.x += perFrame;
-          this.fuel -= perFrame;
+        const delta = tankPs * dt;
+        if (this.x + delta < Board.WIDTH && this.fuel - delta >= 0) {
+          this.x += delta;
+          this.fuel -= delta;
           this.updatePosition(game);
           if (this.y >= Board.HEIGHT) this.selfDestruct(game, 1);
         }
       } else if (this.morePowerFlag) {
-        const perFrame = Math.floor(powerPs / GameLogic.FPS);
-        if (this.power + perFrame <= this.health) this.power += perFrame;
+        const delta = powerPs * dt;
+        if (this.power + delta <= this.health) this.power += delta;
       } else if (this.lessPowerFlag) {
-        const perFrame = Math.floor(powerPs / GameLogic.FPS);
-        if (this.power - perFrame >= 0) this.power -= perFrame;
+        const delta = powerPs * dt;
+        if (this.power - delta >= 0) this.power -= delta;
       }
     } else {
       const fallPs = this.parachute === 0 ? 120 : 60;
-      const perFrame = Math.floor(fallPs / GameLogic.FPS);
+      const delta = fallPs * dt;
       const groundY = game.terrainPosition[clamp(Math.floor(this.x), 0, game.terrainPosition.length - 1)];
 
-      if (this.y + perFrame <= groundY && this.y + perFrame <= Board.HEIGHT) {
+      if (this.y + delta <= groundY && this.y + delta <= Board.HEIGHT) {
         if (this.parachute > 0) this.deployParachute(game.sprites);
 
-        this.y += perFrame;
+        this.y += delta;
         if (this.parachute === 0) {
-          this.setHealth(-perFrame);
+          this.setHealth(-delta);
           if (this.health < this.power) this.setPower(this.health);
         }
       } else {
@@ -250,6 +250,85 @@ class Tank {
       this.selfDestruct(game, 0);
     }
   }
+
+  // tick(game) {
+  //   const turretPsDeg = degrees(3); // turret movement per second
+  //   const tankPs = 60; // tank movement per second (px)
+  //   const powerPs = 36; // power change per second
+
+  //   if (!this.falling) {
+  //     if (this.rotateLeftFlag) {
+  //       const perFrame = turretPsDeg / GameLogic.FPS;
+  //       if (this.turretAngle > -90) {
+  //         this.turretAngle -= perFrame;
+  //         if (this.turretAngle - perFrame <= -90) this.turretAngle = -90;
+  //         this.adjustTurret(this.turretAngle);
+  //       }
+  //     } else if (this.rotateRightFlag) {
+  //       const perFrame = turretPsDeg / GameLogic.FPS;
+  //       if (this.turretAngle < 90) {
+  //         this.turretAngle += perFrame;
+  //         if (this.turretAngle - perFrame >= 90) this.turretAngle = 90;
+  //         this.adjustTurret(this.turretAngle);
+  //       }
+  //     } else if (this.moveLeftFlag) {
+  //       const perFrame = Math.floor(tankPs / GameLogic.FPS);
+  //       if (this.x - perFrame >= 0 && this.fuel - perFrame >= 0) {
+  //         this.x -= perFrame;
+  //         this.fuel -= perFrame;
+  //         this.updatePosition(game);
+  //         if (this.y >= Board.HEIGHT) this.selfDestruct(game, 1);
+  //       }
+  //     } else if (this.moveRightFlag) {
+  //       const perFrame = Math.floor(tankPs / GameLogic.FPS);
+  //       if (this.x + perFrame < Board.WIDTH && this.fuel - perFrame >= 0) {
+  //         this.x += perFrame;
+  //         this.fuel -= perFrame;
+  //         this.updatePosition(game);
+  //         if (this.y >= Board.HEIGHT) this.selfDestruct(game, 1);
+  //       }
+  //     } else if (this.morePowerFlag) {
+  //       const perFrame = Math.floor(powerPs / GameLogic.FPS);
+  //       if (this.power + perFrame <= this.health) this.power += perFrame;
+  //     } else if (this.lessPowerFlag) {
+  //       const perFrame = Math.floor(powerPs / GameLogic.FPS);
+  //       if (this.power - perFrame >= 0) this.power -= perFrame;
+  //     }
+  //   } else {
+  //     const fallPs = this.parachute === 0 ? 120 : 60;
+  //     const perFrame = Math.floor(fallPs / GameLogic.FPS);
+  //     const groundY = game.terrainPosition[clamp(Math.floor(this.x), 0, game.terrainPosition.length - 1)];
+
+  //     if (this.y + perFrame <= groundY && this.y + perFrame <= Board.HEIGHT) {
+  //       if (this.parachute > 0) this.deployParachute(game.sprites);
+
+  //       this.y += perFrame;
+  //       if (this.parachute === 0) {
+  //         this.setHealth(-perFrame);
+  //         if (this.health < this.power) this.setPower(this.health);
+  //       }
+  //     } else {
+  //       if (this.y > Board.HEIGHT) {
+  //         this.y = Board.HEIGHT;
+  //         this.selfDestruct(game, 1);
+  //       } else if (this.y > groundY) {
+  //         if (this.parachute === 0) this.setHealth(this.y - groundY);
+  //         this.y = groundY;
+  //       }
+
+  //       game.damagedTanks.delete(this);
+
+  //       if (this.parachute > 0) this.parachute -= 1;
+  //       this.stopAdjustment();
+  //       this.falling = false;
+  //     }
+  //     this.adjustTurret(this.turretAngle);
+  //   }
+
+  //   if (this.health <= 0) {
+  //     this.selfDestruct(game, 0);
+  //   }
+  // }
 
   draw() {
     strokeWeight(5.0);

@@ -144,8 +144,8 @@ class PlayerHUD {
     // fuel + parachute on one row, icons instead of text labels
     rowY += 30;
     const iconSize = 18;
-    this._drawIconValue('fuel.png', this.tank.fuel, barX, rowY, iconSize);
-    this._drawIconValue('parachute.png', this.tank.parachute, barX + 90, rowY, iconSize);
+    this._drawIconValue('fuel.png', Math.round(this.tank.fuel), barX, rowY, iconSize);
+    this._drawIconValue('parachute.png', Math.round(this.tank.parachute), barX + 90, rowY, iconSize);
   }
 
   _drawIconValue(spriteName, value, x, y, size) {

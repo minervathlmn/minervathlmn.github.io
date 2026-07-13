@@ -181,7 +181,7 @@
     // here would show the room screen with room === null, which is the
     // "broken page with only Public and Back" you were seeing. Treat a
     // refreshed room URL the same as landing on the site fresh.
-    return screen === "room" ? "room" : "menu";
+    return "menu";
   }
 
   // ---------------------------------------------------------------
@@ -548,6 +548,7 @@
       if (player.isOwner) {
         const tag = document.createElement("span");
         tag.className = "owner-tag";
+        // tag.textContent = "Host";
         tag.textContent = "Owner";
         li.appendChild(tag);
       } else if (isOwner) {

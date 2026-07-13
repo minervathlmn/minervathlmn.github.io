@@ -157,6 +157,8 @@ function drawTrees() {
 }
 
 function drawTanks() {
+  const dt = deltaTime / 1000; // seconds since last frame (p5 global, real wall-clock)
+
   for (const id of [...game.remainingTanks]) {
     const tank = game.players.get(id);
     if (!tank) continue;
@@ -167,7 +169,7 @@ function drawTanks() {
       tank.updatePosition(game);
     }
 
-    tank.tick(game);
+    tank.tick(game, dt);
     tank.draw();
 
     tank.projectile.tick(game, tank);
@@ -177,6 +179,28 @@ function drawTanks() {
     tank.projectile.explosion.draw();
   }
 }
+
+// function drawTanks() {
+//   for (const id of [...game.remainingTanks]) {
+//     const tank = game.players.get(id);
+//     if (!tank) continue;
+
+//     if (game.damagedTanks.has(tank)) {
+//       tank.fall();
+//     } else {
+//       tank.updatePosition(game);
+//     }
+
+//     tank.tick(game);
+//     tank.draw();
+
+//     tank.projectile.tick(game, tank);
+//     tank.projectile.draw();
+
+//     tank.projectile.explosion.tick();
+//     tank.projectile.explosion.draw();
+//   }
+// }
 
 function drawHUD() {
   const turnRowY = 22;
