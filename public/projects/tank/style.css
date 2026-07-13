@@ -424,6 +424,19 @@ input[type="text"].code-input {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  position: relative; /* new: anchor for the absolutely positioned note */
+}
+
+.waiting-note {
+  text-align: center;
+  color: var(--maroon-dim);
+  font-style: italic;
+  margin: 0 0 1rem;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%; /* just below the list */
+  margin-top: 0.5rem;
 }
 
 /* Reserves room for a full 4-player lobby (owner + 3) so the box doesn't
@@ -473,14 +486,11 @@ input[type="text"].code-input {
   min-width: 92px;
 }
 
-/* Kick button — deliberately rougher/harsher than the rest of the UI:
-   jittery corner radii (not a clean radius) plus a double outline via
-   box-shadow, in a warning red instead of the maroon palette. */
 .btn-kick {
   background: transparent;
   color: #a33;
   border: 2px solid #a33;
-  border-radius: 2px 7px 3px 8px / 7px 3px 8px 2px;
+  border-radius: 0;
   box-shadow:
     0 0 0 2px var(--beige-light),
     0 0 0 4px #a33;
@@ -542,12 +552,13 @@ input[type="text"].code-input {
   font-size: 1.3rem;
 }
 
-.waiting-note {
+/* .waiting-note {
   text-align: center;
   color: var(--maroon-dim);
   font-style: italic;
   margin: 0 0 1rem;
-}
+} */
+
 
 /* --- Lobby: searching overlay --- */
 

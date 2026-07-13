@@ -408,6 +408,13 @@
     requireNickname(doJoinByCode);
   });
 
+  // Allow pressing Enter while focused on the code input to submit, same as clicking Join
+  document.getElementById("codeInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      requireNickname(doJoinByCode);
+    }
+  });
+
   async function doJoinByCode() {
     const code = document.getElementById("codeInput").value.trim();
     const errorEl = document.getElementById("codeError");
@@ -618,6 +625,20 @@
 
   document.getElementById("startBtn").addEventListener("click", () => {
     if (room) room.send("start");
+  });
+
+  // Allow the room owner to press Enter to start the game, as a
+  // keyboard-accessible alternative to clicking the Start button.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+
+    const startBtn = document.getElementById("startBtn");
+    const isVisible = startBtn.style.display !== "none";
+    const isEnabled = !startBtn.disabled;
+
+    if (isVisible && isEnabled) {
+      startBtn.click();
+    }
   });
 
   // ---------------------------------------------------------------
