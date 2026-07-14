@@ -38,25 +38,25 @@ class Board {
     this.cells = [];
     this.terrainPosition = new Array(Board.WIDTH + Board.CELLSIZE).fill(Board.HEIGHT);
 
-    for (let i = 0; i < Board.GRID_HEIGHT; i++) {
-      const row = [];
-      const line = padded[i] ?? '';
+    for (let row = 0; row < Board.GRID_HEIGHT; row++) {
+      const cellRow = [];
+      const line = padded[row] ?? '';
 
-      for (let i2 = 0; i2 < Board.GRID_WIDTH; i2++) {
-        const c = line[i2] ?? ' ';
+      for (let col = 0; col < Board.GRID_WIDTH; col++) {
+        const c = line[col] ?? ' ';
         const cell = new Cell(c);
-        row.push(cell);
+        cellRow.push(cell);
 
         if (cell.type === Cell.Type.TERRAIN) {
           for (let j = 0; j < Board.CELLSIZE; j++) {
-            const px = i2 * Board.CELLSIZE + j;
+            const px = col * Board.CELLSIZE + j;
             if (px < this.terrainPosition.length) {
-              this.terrainPosition[px] = i * Board.CELLSIZE;
+              this.terrainPosition[px] = row * Board.CELLSIZE;
             }
           }
         }
       }
-      this.cells.push(row);
+      this.cells.push(cellRow);
     }
 
     // terrain smoothing (2x), matching App.generateLevel()
@@ -66,14 +66,14 @@ class Board {
     this.trees = [];
     this.playerStarts = [];
 
-    for (let i = 0; i < this.cells.length; i++) {
-      for (let i2 = 0; i2 < this.cells[i].length; i2++) {
-        const cell = this.cells[i][i2];
+    for (let row = 0; row < this.cells.length; row++) {
+      for (let col = 0; col < this.cells[row].length; col++) {
+        const cell = this.cells[row][col];
 
         if (cell.type === Cell.Type.TREE) {
-          this.trees.push(i2 * Board.CELLSIZE);
+          this.trees.push(col * Board.CELLSIZE);
         } else if (cell.type === Cell.Type.HUMAN_PLAYER) {
-          const x = i2 * Board.CELLSIZE;
+          const x = col * Board.CELLSIZE;
           const y = this.terrainPosition[x];
           this.playerStarts.push({ id: cell.id, x, y });
         }

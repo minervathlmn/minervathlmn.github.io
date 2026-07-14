@@ -31,6 +31,12 @@ function setup() {
 
   const cnv = createCanvas(Board.WIDTH, Board.HEIGHT);
   cnv.parent('canvas-container');
+  // p5 sets inline width/height styles matching the pixel size passed to
+  // createCanvas, which would override the responsive CSS on #canvas-container
+  // canvas (style.css). Clearing them lets that stylesheet rule take over,
+  // while the underlying drawing resolution stays Board.WIDTH x Board.HEIGHT.
+  cnv.elt.style.width = '';
+  cnv.elt.style.height = '';
   frameRate(GameLogic.FPS);
   noStroke();
 
@@ -90,14 +96,7 @@ function bindNetworkHandlers() {
 // firing client can tell the server who's up next (skipping anyone
 // eliminated) without every client double-running the turn-advance math.
 function peekNextPlayer(game) {
-  let idx = game.playerIndex;
-  let guard = 0;
-  while (guard++ < 1000) {
-    const candidate = game.playerIDs[idx % game.playerIDs.length];
-    if (game.remainingTanks.includes(candidate)) return candidate;
-    idx++;
-  }
-  return game.currentPlayer;
+  return findNextAlive(game.playerIDs, game.remainingTanks, game.playerIndex).id;
 }
 
 function draw() {
@@ -179,28 +178,6 @@ function drawTanks() {
     tank.projectile.explosion.draw();
   }
 }
-
-// function drawTanks() {
-//   for (const id of [...game.remainingTanks]) {
-//     const tank = game.players.get(id);
-//     if (!tank) continue;
-
-//     if (game.damagedTanks.has(tank)) {
-//       tank.fall();
-//     } else {
-//       tank.updatePosition(game);
-//     }
-
-//     tank.tick(game);
-//     tank.draw();
-
-//     tank.projectile.tick(game, tank);
-//     tank.projectile.draw();
-
-//     tank.projectile.explosion.tick();
-//     tank.projectile.explosion.draw();
-//   }
-// }
 
 function drawHUD() {
   const turnRowY = 22;

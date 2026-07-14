@@ -103,16 +103,10 @@ class GameLogic {
   }
 
   playerOrder() {
-    let guard = 0; // safety net against an all-dead edge case looping forever
-    while (guard++ < 1000) {
-      this.currentPlayer = this.playerIDs[this.playerIndex % this.playerIDs.length];
-      if (!this.remainingTanks.includes(this.currentPlayer)) {
-        this.playerIndex++;
-      } else {
-        this.nextPlayer = this.playerIDs[(this.playerIndex + 1) % this.playerIDs.length];
-        break;
-      }
-    }
+    const { id, index } = findNextAlive(this.playerIDs, this.remainingTanks, this.playerIndex);
+    this.currentPlayer = id;
+    this.playerIndex = index;
+    this.nextPlayer = this.playerIDs[(this.playerIndex + 1) % this.playerIDs.length];
 
     this.wind += Math.floor(this.rng() * 11) - 5; // -5..5 drift
     this.playerIndex++;

@@ -190,6 +190,13 @@ input[type="text"]:focus {
 
 #canvas-container canvas {
   display: block;
+  /* Board is 864x640 (27:20). Convert the 90vh limit into an equivalent
+     width via that ratio, then take whichever of the two width limits
+     (viewport width vs. viewport-height-derived width) is smaller, so
+     the canvas always fits without overflowing either axis. */
+  width: min(90vw, calc(90vh * 864 / 640));
+  height: auto;
+  aspect-ratio: 864 / 640;
 }
 
 /* --- Lobby: shared screen layout --- */
@@ -551,14 +558,6 @@ input[type="text"].code-input {
   justify-content: center;
   font-size: 1.3rem;
 }
-
-/* .waiting-note {
-  text-align: center;
-  color: var(--maroon-dim);
-  font-style: italic;
-  margin: 0 0 1rem;
-} */
-
 
 /* --- Lobby: searching overlay --- */
 

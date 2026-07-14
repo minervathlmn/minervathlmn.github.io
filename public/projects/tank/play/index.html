@@ -34,23 +34,22 @@
 <section class="screen" id="screen-join">
   <h1>Join Others</h1>
   <div class="tabs">
-    <button class="tab-btn active" id="tabPrivateBtn">Private Lobby</button>
-    <button class="tab-btn" id="tabPublicBtn">Public Lobby</button>
+    <button class="tab-btn active" id="tabPublicBtn">Public Lobby</button>
+    <button class="tab-btn" id="tabPrivateBtn">Private Lobby</button>
   </div>
 
-  <div class="tab-panel active" id="panel-private">
+  <div class="tab-panel active" id="panel-public">
+    <ul class="room-list" id="publicRoomList"></ul>
+    <p class="empty-note" id="publicListEmpty" style="display:none;">No public lobbies right now — try Quick Join.</p>
+  </div>
+
+  <div class="tab-panel" id="panel-private">
     <p style="text-align:center;">Enter code to join</p>
-    <!-- <input type="text" class="code-input" id="codeInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="✱✱✱✱" /> -->
     <input type="text" class="code-input" id="codeInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="0000" />
     <p class="error-note" id="codeError"></p>
     <div style="text-align:center;">
       <button class="btn-primary" id="submitCodeBtn" style="padding:0.8rem 2.2rem; font-size:1.1rem;">Join</button>
     </div>
-  </div>
-
-  <div class="tab-panel" id="panel-public">
-    <ul class="room-list" id="publicRoomList"></ul>
-    <p class="empty-note" id="publicListEmpty" style="display:none;">No public lobbies right now — try Quick Join.</p>
   </div>
 
   <div class="footer-row">
@@ -555,7 +554,6 @@
       if (player.isOwner) {
         const tag = document.createElement("span");
         tag.className = "owner-tag";
-        // tag.textContent = "Host";
         tag.textContent = "Owner";
         li.appendChild(tag);
       } else if (isOwner) {

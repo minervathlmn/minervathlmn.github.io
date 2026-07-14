@@ -95,7 +95,6 @@ class Explosion {
     for (const id of game.playerIDs) {
       const tank = game.players.get(id);
       if (tank && tank.x >= fromX && tank.x <= toX) {
-        console.log('damaged:', id, 'tank.x=', tank.x, 'range=', fromX, toX);
         game.damagedTanks.add(tank);
       }
     }
