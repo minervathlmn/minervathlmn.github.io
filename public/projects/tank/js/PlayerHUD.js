@@ -22,7 +22,8 @@ class PlayerHUD {
   /**
    * @param {number} x top-left x of the panel when expanded
    * @param {number} y top-left y of the panel when expanded
-   * @param {Tank} tank reference to the live tank object (read-only here)
+   * @param {TankState} tank synced schema object (read-only plain fields —
+   *   no methods, unlike the old live Tank instance this used to receive)
    * @param {Object} sprites shared sprite cache from sketch.js (filename -> p5.Image | null)
    */
   constructor(x, y, tank, sprites) {
@@ -128,13 +129,13 @@ class PlayerHUD {
     textFont('Space Grotesk');
     textAlign(LEFT, TOP);
     textSize(19);
-    text(`Player ${this.tank.player}`, x + p, y + p);
+    text(`Player ${this.tank.letter}`, x + p, y + p);
 
     // health bar - filled with the tank's own colour, muted for legibility
     const barX = x + p;
     let rowY = y + p + 34;
     this._drawLabel('Health', barX, rowY);
-    this._drawBar(barX + 62, rowY, this.tank.health / PlayerHUD.MAX_STAT, this._mutedColour(this.tank.colour));
+    this._drawBar(barX + 62, rowY, this.tank.health / PlayerHUD.MAX_STAT, this._mutedColour([this.tank.colourR, this.tank.colourG, this.tank.colourB]));
 
     // power bar
     rowY += 26;

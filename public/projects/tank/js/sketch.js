@@ -1,29 +1,27 @@
 /**
- * p5 entry point for the tank game. Owns the canvas and render loop.
- * All rules/state live in GameLogic. Input is now network-gated: only
- * the active player's key presses do anything, and even then they only
- * SEND a message — the actual Tank mutation happens uniformly for every
- * client inside bindNetworkHandlers(), once the server relays it back.
- * This keeps all four screens running identical code on identical input.
+ * p5 entry point for the tank game. Server-authoritative: this file no
+ * longer runs any game rules at all — no GameLogic instance, no
+ * tank.tick()/rotateLeft() etc. It only reads room.state (via
+ * TankNetwork.getState()) each frame and draws it, and sends input
+ * intent on key press/release. Colyseus schema objects are live/reactive,
+ * so reading state.xxx directly in draw() always sees the latest value —
+ * no separate change-listener/snapshot needed.
  */
-let game;
 let hud;
-let configData;
-let levelLayouts = {};
 let sprites = {};
-let myLetter = null; // this client's tank id ('A'/'B'/'C'/'D'), fixed for the whole game
+let mySessionId = null;
+let activeShots = []; // CosmeticProjectile instances currently animating
 
+const FPS = 30; // matches server GameLogic.FPS
 const SPRITE_FILES = [
   'basic.png', 'desert.png', 'forest.png', 'hills.png', 'snow.png',
   'fuel.png', 'parachute.png', 'tree1.png', 'tree2.png', 'wind.png', 'wind-1.png',
 ];
-const LEVEL_FILES = ['level1.txt', 'level2.txt', 'level3.txt'];
 
 function preload() {
-  configData = loadJSON('../levels/config.json');
-  for (const file of LEVEL_FILES) {
-    levelLayouts[file] = loadStrings(`../levels/${file}`);
-  }
+  // No more config.json/level layouts here — terrain, wind, level theming
+  // (background/tree image names, terrain colour) all arrive already
+  // resolved via synced state. Only sprite assets are still loaded locally.
 }
 
 function setup() {
@@ -31,13 +29,9 @@ function setup() {
 
   const cnv = createCanvas(Board.WIDTH, Board.HEIGHT);
   cnv.parent('canvas-container');
-  // p5 sets inline width/height styles matching the pixel size passed to
-  // createCanvas, which would override the responsive CSS on #canvas-container
-  // canvas (style.css). Clearing them lets that stylesheet rule take over,
-  // while the underlying drawing resolution stays Board.WIDTH x Board.HEIGHT.
   cnv.elt.style.width = '';
   cnv.elt.style.height = '';
-  frameRate(GameLogic.FPS);
+  frameRate(FPS);
   noStroke();
 
   for (const file of SPRITE_FILES) {
@@ -46,82 +40,65 @@ function setup() {
   }
 
   TankNetwork.ready.then(() => {
-    game = new GameLogic(configData, levelLayouts, sprites, TankNetwork.getSeed());
+    mySessionId = TankNetwork.getMySessionId();
 
-    const myIndex = TankNetwork.getMyLetterIndex();
-    myLetter = game.playerIDs[myIndex] ?? game.playerIDs[0];
-
-    hud = new PlayerHUD(16, 16, game.players.get(myLetter), sprites);
+    const state = TankNetwork.getState();
+    const myTank = state.tanks.get(mySessionId);
+    hud = new PlayerHUD(16, 16, myTank, sprites);
 
     bindNetworkHandlers();
     loop();
   });
 }
 
-// Applies input relayed from the server to whichever tank currently
-// holds the turn. Runs identically on every client, including the one
-// that originally sent the action.
 function bindNetworkHandlers() {
-  TankNetwork.onAction((type) => {
-    const tank = game.players.get(game.currentPlayer);
-    if (!tank) return;
+  TankNetwork.onShotFired((payload) => {
+    const state = TankNetwork.getState();
+    const shooter = state.tanks.get(payload.shooterSessionId);
+    const colour = shooter ? [shooter.colourR, shooter.colourG, shooter.colourB] : [0, 0, 0];
+    activeShots.push(new CosmeticProjectile(payload, colour));
+  });
 
-    switch (type) {
-      case "rotateLeft": tank.rotateLeft(); break;
-      case "rotateRight": tank.rotateRight(); break;
-      case "moveLeft": tank.moveLeft(); break;
-      case "moveRight": tank.moveRight(); break;
-      case "morePower": tank.morePower(); break;
-      case "lessPower": tank.lessPower(); break;
-      case "stopAdjustment": tank.stopAdjustment(); break;
-      case "repair": tank.repair(); break;
-      case "addFuel": tank.addFuel(); break;
-      case "addParachute": tank.addParachute(); break;
-      case "xtra": tank.projectile.xtra(tank); break;
-      case "fire":
-        tank.stopAdjustment();
-        tank.projectile.setFire(game, tank);
-        game.playerOrder();
-        break;
-    }
+  TankNetwork.onTankExploded((payload) => {
+    activeShots.push(new CosmeticExplosion(payload));
   });
 
   TankNetwork.onRestart(() => {
-    game.restartGame();
+    activeShots = []; // clear any stray in-flight shell/explosion visuals
   });
 }
 
-// Read-only preview of what GameLogic.playerOrder() would resolve
-// `currentPlayer` to next, WITHOUT mutating game state. Used so the
-// firing client can tell the server who's up next (skipping anyone
-// eliminated) without every client double-running the turn-advance math.
-function peekNextPlayer(game) {
-  return findNextAlive(game.playerIDs, game.remainingTanks, game.playerIndex).id;
+function isLevelOver(state) {
+  let aliveCount = 0;
+  for (const t of state.tanks.values()) if (t.alive) aliveCount++;
+  return aliveCount <= 1;
 }
 
 function draw() {
   background(255);
-  if (!game) return;
+  const state = TankNetwork.getState();
+  if (!state || !state.started) return;
 
-  drawBackground();
-  drawTerrain();
-  drawTrees();
-  drawTanks();
-  drawHUD();
+  drawBackground(state);
+  drawTerrain(state);
+  drawTrees(state);
+  drawTanks(state);
+  drawShots(state);
+  drawHUD(state);
 
-  if (game.isGameOver()) {
-    drawGameEnd();
+  if (state.gameEnded) {
+    drawGameEnd(state);
   }
 }
 
-function drawBackground() {
-  const img = sprites[game.backgroundImageName];
+function drawBackground(state) {
+  const img = sprites[state.backgroundImageName];
   if (img) {
     image(img, 0, 0, Board.WIDTH, Board.HEIGHT);
     return;
   }
 
-  const fallback = FALLBACK_BACKGROUND_COLOURS[game.backgroundImageName] ?? FALLBACK_BACKGROUND_COLOURS['basic.png'];
+  const fallback = FALLBACK_BACKGROUND_COLOURS[state.backgroundImageName] ?? FALLBACK_BACKGROUND_COLOURS['basic.png'];
   const c1 = color(fallback[0]);
   const c2 = color(fallback[1]);
   for (let y = 0; y < Board.HEIGHT; y++) {
@@ -131,20 +108,19 @@ function drawBackground() {
   noStroke();
 }
 
-function drawTerrain() {
-  const [r, g, b] = game.terrainColour;
-  stroke(r, g, b);
+function drawTerrain(state) {
+  stroke(state.terrainColourR, state.terrainColourG, state.terrainColourB);
   for (let x = 0; x < Board.WIDTH; x++) {
-    const y = game.terrainPosition[x];
+    const y = state.terrainPosition[x];
     line(x, y, x, Board.HEIGHT);
   }
   noStroke();
 }
 
-function drawTrees() {
-  const img = sprites[game.treeImageName];
-  for (const x of game.trees) {
-    const y = game.terrainPosition[x] - 32;
+function drawTrees(state) {
+  const img = sprites[state.treeImageName];
+  for (const x of state.trees) {
+    const y = state.terrainPosition[x] - 32;
     if (img) {
       image(img, x - Board.CELLSIZE / 2, y, Board.CELLSIZE, Board.CELLSIZE);
     } else {
@@ -155,71 +131,97 @@ function drawTrees() {
   }
 }
 
-function drawTanks() {
-  const dt = deltaTime / 1000; // seconds since last frame (p5 global, real wall-clock)
+// Inlines what client Tank.draw()/deployParachute() used to do — the
+// server's Tank no longer draws itself (it's a plain simulation object),
+// so this reads the synced TankState fields directly.
+function drawTankVisual(t) {
+  const TURRET_LENGTH = 15;
+  const rad = radians(t.turretAngle);
+  const turretX = t.x + Math.floor(TURRET_LENGTH * sin(rad));
+  const turretY = t.y - 6 - Math.floor(TURRET_LENGTH * cos(rad));
 
-  for (const id of [...game.remainingTanks]) {
-    const tank = game.players.get(id);
-    if (!tank) continue;
+  strokeWeight(5);
+  stroke(0);
+  line(t.x, t.y - 6, turretX, turretY);
 
-    if (game.damagedTanks.has(tank)) {
-      tank.fall();
+  stroke(t.colourR, t.colourG, t.colourB);
+  line(t.x - 4, t.y - 4, t.x + 4, t.y - 4);
+  line(t.x - 8, t.y, t.x + 8, t.y);
+  noStroke();
+
+  // parachute deploy inferred from synced falling+parachute fields,
+  // instead of Tank calling deployParachute() itself during tick()
+  if (t.falling && t.parachute > 0) {
+    const img = sprites['parachute.png'];
+    if (img) {
+      image(img, t.x - 32, t.y - 66, Board.CELLSIZE * 2, Board.CELLSIZE * 2);
     } else {
-      tank.updatePosition(game);
+      fill(255);
+      triangle(t.x - 20, t.y - 40, t.x + 20, t.y - 40, t.x, t.y - 10);
+      noStroke();
     }
-
-    tank.tick(game, dt);
-    tank.draw();
-
-    tank.projectile.tick(game, tank);
-    tank.projectile.draw();
-
-    tank.projectile.explosion.tick();
-    tank.projectile.explosion.draw();
   }
 }
 
-function drawHUD() {
+function drawTanks(state) {
+  for (const tankState of state.tanks.values()) {
+    if (!tankState.alive) continue;
+    drawTankVisual(tankState);
+  }
+}
+
+function drawShots(state) {
+  const dt = deltaTime / 1000;
+  activeShots = activeShots.filter(shot => {
+    shot.tick(dt, state.terrainPosition, state.wind);
+    shot.draw();
+    return !shot.done;
+  });
+}
+
+function drawHUD(state) {
   const turnRowY = 22;
   const windRowY = turnRowY + 32;
+
+  const myTank = state.tanks.get(mySessionId);
+  const turnTank = state.tanks.get(state.currentTurnSessionId);
 
   textSize(16);
   textAlign(RIGHT, TOP);
   fill(...UI_THEME.hudText);
   const turnLabel = TankNetwork.isMyTurn()
-    ? `Your turn (Player ${game.currentPlayer})`
-    : `Player ${game.currentPlayer}'s turn`;
+    ? `Your turn (Player ${myTank?.letter ?? '?'})`
+    : `Player ${turnTank?.letter ?? '?'}'s turn`;
   text(turnLabel, Board.WIDTH - 30, turnRowY);
 
-  // Always show MY tank's panel, tinted with my colour — not whoever's
-  // turn it currently is.
-  hud.tank = game.players.get(myLetter);
+  hud.tank = myTank;
   hud.draw();
 
-  if (game.wind !== 0) {
-    const windImg = game.wind < 0 ? sprites['wind-1.png'] : sprites['wind.png'];
+  if (state.wind !== 0) {
+    const windImg = state.wind < 0 ? sprites['wind-1.png'] : sprites['wind.png'];
     if (windImg) {
       image(windImg, Board.WIDTH - 115, windRowY - 14, Board.CELLSIZE * 1.5, Board.CELLSIZE * 1.5);
     }
   }
   textAlign(RIGHT, TOP);
   fill(...UI_THEME.hudText);
-  text(Math.round(game.wind), Board.WIDTH - 30, windRowY);
+  text(Math.round(state.wind), Board.WIDTH - 30, windRowY);
   textAlign(LEFT, TOP);
 }
 
-function drawGameEnd() {
+function drawGameEnd(state) {
   fill(0, 150);
   rect(0, 0, Board.WIDTH, Board.HEIGHT);
 
-  const first = game.players.get(game.playerIDs[0]);
-  const second = game.players.get(game.playerIDs[1]);
+  const tanks = [...state.tanks.values()].sort((a, b) => b.score - a.score);
+  const first = tanks[0];
+  const second = tanks[1];
 
   textAlign(CENTER, TOP);
   textSize(24);
   if (first && second && first.score > second.score) {
-    fill(first.colour[0], first.colour[1], first.colour[2]);
-    text(`Player ${game.playerIDs[0]} wins!`, Board.WIDTH / 2, 100);
+    fill(first.colourR, first.colourG, first.colourB);
+    text(`Player ${first.letter} wins!`, Board.WIDTH / 2, 100);
   } else {
     fill(255);
     text("It's a tie!", Board.WIDTH / 2, 100);
@@ -247,7 +249,9 @@ function restartButtonBounds() {
 
 function mousePressed() {
   if (hud.handleClick(mouseX, mouseY)) return;
-  if (!game || !game.isGameOver()) return;
+
+  const state = TankNetwork.getState();
+  if (!state || !state.gameEnded) return;
 
   const { bx, by, bw, bh } = restartButtonBounds();
   if (mouseX >= bx && mouseX <= bx + bw && mouseY >= by && mouseY <= by + bh) {
@@ -256,10 +260,11 @@ function mousePressed() {
 }
 
 function keyPressed() {
-  if (!game || game.isLevelOver() || !TankNetwork.isMyTurn()) return;
+  const state = TankNetwork.getState();
+  if (!state || isLevelOver(state) || !TankNetwork.isMyTurn()) return;
 
-  const tank = game.players.get(game.currentPlayer);
-  if (!tank || tank.isFalling()) return;
+  const myTank = state.tanks.get(mySessionId);
+  if (!myTank || myTank.falling) return;
 
   if (keyCode === UP_ARROW) TankNetwork.sendAction("rotateLeft");
   else if (keyCode === DOWN_ARROW) TankNetwork.sendAction("rotateRight");
@@ -274,17 +279,18 @@ function keyPressed() {
 }
 
 function keyReleased() {
-  if (!game) return;
+  const state = TankNetwork.getState();
+  if (!state) return;
 
-  if (game.isLevelOver()) {
+  if (isLevelOver(state)) {
     if (key === 'r' || key === 'R') TankNetwork.sendRestart();
     return;
   }
 
   if (!TankNetwork.isMyTurn()) return;
 
-  const tank = game.players.get(game.currentPlayer);
-  if (!tank || tank.isFalling()) return;
+  const myTank = state.tanks.get(mySessionId);
+  if (!myTank || myTank.falling) return;
 
   const movementKeys = [UP_ARROW, DOWN_ARROW, LEFT_ARROW, RIGHT_ARROW];
   if (movementKeys.includes(keyCode) || 'wWsS'.includes(key)) {
@@ -292,8 +298,7 @@ function keyReleased() {
   }
 
   if (keyCode === 32) { // space: fire and pass turn
-    const nextLetter = peekNextPlayer(game);
-    TankNetwork.sendAction("fire", { nextLetter });
+    TankNetwork.sendAction("fire");
   }
 
   if (key === 'r' || key === 'R') TankNetwork.sendAction("repair");

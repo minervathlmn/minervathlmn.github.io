@@ -1,8 +1,14 @@
 /**
  * Loaded only on the GAME page (game/index.html). Reconnects to the
  * Colyseus room already joined in the lobby, using the token play page
- * saved to sessionStorage, then exposes a small API sketch.js uses to
- * send turn-gated input and receive input relayed from the active player.
+ * saved to sessionStorage.
+ *
+ * Server-authoritative model: this no longer relays or applies gameplay
+ * actions. sketch.js reads room.state directly (via getState()) every
+ * frame for rendering — Colyseus schema objects are live/reactive, so
+ * there's no need for a separate onStateChange snapshot. The only event
+ * still needed is "shotFired", since the server doesn't sync a shot's
+ * flight/landing moment-by-moment — see CosmeticProjectile.js.
  */
 const TankNetwork = (function () {
   const client = new Colyseus.Client(
@@ -13,10 +19,8 @@ const TankNetwork = (function () {
 
   let room = null;
   let mySessionId = null;
-  let turnOrder = [];        // sessionIds, fixed at game start, owner first = "A"
-  let currentTurnSessionId = null;
-  let seed = 1;
-  let onActionCallback = null;
+  let onShotFiredCallback = null;
+  let onTankExplodedCallback = null;
   let onRestartCallback = null;
 
   let readyResolve;
@@ -26,9 +30,6 @@ const TankNetwork = (function () {
     const roomId = sessionStorage.getItem("tankRoomId");
     const token = sessionStorage.getItem("tankReconnectToken");
     mySessionId = sessionStorage.getItem("tankSessionId");
-    turnOrder = JSON.parse(sessionStorage.getItem("tankTurnOrder") || "[]");
-    seed = Number(sessionStorage.getItem("tankSeed")) || 1;
-    currentTurnSessionId = turnOrder[0] || null;
 
     if (!roomId || !token) {
       console.error("No lobby session found — returning to menu.");
@@ -44,17 +45,37 @@ const TankNetwork = (function () {
       return;
     }
 
-    room.onMessage("action", (payload) => {
-      if (onActionCallback) onActionCallback(payload.type);
+    room.onMessage("shotFired", (payload) => {
+      if (onShotFiredCallback) onShotFiredCallback(payload);
+    });
+
+    room.onMessage("tankExploded", (payload) => {
+      if (onTankExplodedCallback) onTankExplodedCallback(payload);
     });
 
     room.onMessage("restart", () => {
       if (onRestartCallback) onRestartCallback();
     });
 
-    room.onStateChange((state) => {
-      if (state.currentTurnSessionId) currentTurnSessionId = state.currentTurnSessionId;
-    });
+    // reconnect() resolving only means the handshake succeeded — it does
+    // NOT guarantee the first full state patch has arrived yet. Without
+    // this wait, sketch.js's setup() could run while room.state.tanks is
+    // still empty and crash on state.tanks.get(mySessionId).
+    if (!room.state || !room.state.tanks || room.state.tanks.size === 0) {
+      await new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          console.error("Timed out waiting for initial game state.");
+          resolve(); // let setup() proceed anyway rather than hang forever
+        }, 8000);
+
+        room.onStateChange(() => {
+          if (room.state && room.state.tanks && room.state.tanks.size > 0) {
+            clearTimeout(timeout);
+            resolve();
+          }
+        });
+      });
+    }
 
     readyResolve();
   }
@@ -63,13 +84,13 @@ const TankNetwork = (function () {
 
   return {
     ready,
-    getSeed: () => seed,
-    getTurnOrder: () => turnOrder,
-    getMyLetterIndex: () => turnOrder.indexOf(mySessionId),
-    isMyTurn: () => mySessionId !== null && mySessionId === currentTurnSessionId,
+    getState: () => room?.state,
+    getMySessionId: () => mySessionId,
+    isMyTurn: () => !!room && !!room.state && mySessionId === room.state.currentTurnSessionId,
     sendAction: (type, extra) => { if (room) room.send("action", Object.assign({ type }, extra)); },
     sendRestart: () => { if (room) room.send("restart"); },
-    onAction: (cb) => { onActionCallback = cb; },
+    onShotFired: (cb) => { onShotFiredCallback = cb; },
+    onTankExploded: (cb) => { onTankExplodedCallback = cb; },
     onRestart: (cb) => { onRestartCallback = cb; },
   };
 })();
