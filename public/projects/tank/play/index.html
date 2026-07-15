@@ -270,6 +270,14 @@
     closeNicknameModal();
   });
 
+  // Allow pressing Enter while focused on the nickname input to submit,
+  // same as clicking Continue.
+  document.getElementById("nicknameInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      document.getElementById("confirmNicknameBtn").click();
+    }
+  });
+
   document.getElementById("changeNameBtn").addEventListener("click", () => {
     sessionNickname = null;
     requireNickname(() => {}); // just reopens the picker; no action queued
@@ -495,30 +503,52 @@
     room = joinedRoom;
     mySessionId = room.sessionId;
 
-    room.onStateChange(renderRoom);
+    // Every callback below is guarded with `room !== joinedRoom`. Closing a
+    // lobby (or being kicked, or leaving) doesn't tear down the Colyseus
+    // connection instantly — the "lobbyClosed"/"kicked" message and the
+    // eventual onLeave for THIS room object can still be in flight after
+    // the player has already dismissed the alert and created/joined a
+    // different lobby, which reassigns the shared `room`/`mySessionId`
+    // variables to the new room. Without this guard, that late-arriving
+    // event calls cleanupRoom() and nulls out `room` out from under the
+    // *new* lobby — which is exactly what broke "close lobby, create
+    // again" (private code, Start, etc. all silently stopped working
+    // because every handler's `if (room) ...` check started failing).
+    room.onStateChange(() => {
+      if (room !== joinedRoom) return;
+      renderRoom();
+    });
 
     room.onMessage("gameStart", (payload) => {
-      sessionStorage.setItem("tankRoomId", room.id);
+      if (room !== joinedRoom) return;
+      sessionStorage.setItem("tankRoomId", room.roomId);
       sessionStorage.setItem("tankReconnectToken", room.reconnectionToken);
       sessionStorage.setItem("tankSessionId", mySessionId);
-      sessionStorage.setItem("tankTurnOrder", JSON.stringify(payload.turnOrder));
       sessionStorage.setItem("tankSeed", String(payload.seed));
       window.location.href = "../game/index.html";
     });
 
+    room.onMessage("startFailed", (payload) => {
+      if (room !== joinedRoom) return;
+      alert(payload?.reason || "Couldn't start the game. Please try again.");
+    });
+
     room.onMessage("lobbyClosed", () => {
+      if (room !== joinedRoom) return;
       alert("The host closed this lobby.");
       cleanupRoom();
       showScreen("menu");
     });
 
     room.onMessage("kicked", () => {
+      if (room !== joinedRoom) return;
       alert("You were removed from the lobby by the host.");
       cleanupRoom();
       showScreen("menu");
     });
 
     room.onLeave(() => {
+      if (room !== joinedRoom) return;
       cleanupRoom();
     });
 
@@ -610,13 +640,19 @@
   });
 
   document.getElementById("guestLeaveBtn").addEventListener("click", () => {
-    if (room) room.leave();
+    if (room) {
+      room.send("leaveLobby");
+      room.leave();
+    }
     cleanupRoom();
     showScreen("menu");
   });
 
   document.getElementById("roomBackBtn").addEventListener("click", () => {
-    if (room) room.leave();
+    if (room) {
+      room.send("leaveLobby");
+      room.leave();
+    }
     cleanupRoom();
     showScreen("menu");
   });
@@ -651,6 +687,24 @@
     refreshPublicRoomList();
     document.getElementById("codeInput").focus();
   }
+
+  // initialScreenFromURL() only runs once, at initial script execution —
+  // it does NOT run again when the browser restores this page from
+  // bfcache (back-forward cache), which is exactly what happens when
+  // pressing Back from game/index.html (showScreen() uses replaceState,
+  // so there's no separate history entry per screen; Back navigates
+  // straight to whatever this page's DOM/JS state was the moment we left
+  // for game/index.html — still showing screen-room, with `room` pointing
+  // at a connection that's long gone). Without this, that's the exact
+  // "broken page with only Public and Back" ghost-room bug.
+  window.addEventListener("pageshow", (event) => {
+    if (!event.persisted) return;
+    if (room) {
+      try { room.leave(); } catch (e) { /* already gone, nothing to clean up */ }
+    }
+    cleanupRoom();
+    showScreen("menu");
+  });
 })();
 </script>
 
