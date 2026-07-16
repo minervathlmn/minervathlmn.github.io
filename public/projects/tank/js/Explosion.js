@@ -10,6 +10,14 @@
  * preserved here for faithful behaviour rather than "fixed".
  */
 class Explosion {
+  // Number of tick() calls the blast (grow + fade) takes before this
+  // Explosion parks itself back at -50,-50, ready for the next shot.
+  // The client's own Explosion class mirrors this exact cycle length —
+  // TankRoom.js derives its level-transition delay from this constant
+  // and GameLogic.FPS so that wait matches the real animation duration
+  // instead of a guessed number of ms.
+  static ANIMATION_TICKS = 6;
+
   constructor() {
     this.x = -50;
     this.y = -50;
@@ -115,6 +123,22 @@ class Explosion {
       }
     }
   }
+
+  // tick() {
+  //   if (this.x !== -50 && this.y !== -50) {
+  //     this.count++;
+  //     if (this.count < Explosion.ANIMATION_TICKS) {
+  //       this.time = this.count / Explosion.ANIMATION_TICKS;
+  //       this.redSize = this.radius * this.time;
+  //       this.orangeSize = 0.5 * this.redSize;
+  //       this.yellowSize = 0.2 * this.redSize;
+  //     } else if (this.count === Explosion.ANIMATION_TICKS) {
+  //       this.x = -50;
+  //       this.y = -50;
+  //       this.count = 0;
+  //     }
+  //   }
+  // }
 
   draw() {
     noStroke();

@@ -45,6 +45,16 @@ const TankNetwork = (function () {
       return;
     }
 
+    // Colyseus rotates the reconnection token on every successful
+    // reconnect — it's single-use, not a reusable key. Without saving the
+    // new one back here, a SECOND refresh (or any refresh after the
+    // first) would still be holding the now-stale original token from
+    // gameStart and fail, even though the first refresh worked fine.
+    mySessionId = room.sessionId;
+    sessionStorage.setItem("tankRoomId", room.roomId);
+    sessionStorage.setItem("tankReconnectToken", room.reconnectionToken);
+    sessionStorage.setItem("tankSessionId", mySessionId);
+
     room.onMessage("shotFired", (payload) => {
       if (onShotFiredCallback) onShotFiredCallback(payload);
     });

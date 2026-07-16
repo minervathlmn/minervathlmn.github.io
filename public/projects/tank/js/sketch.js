@@ -190,8 +190,8 @@ function drawHUD(state) {
   textAlign(RIGHT, TOP);
   fill(...UI_THEME.hudText);
   const turnLabel = TankNetwork.isMyTurn()
-    ? `Your turn (Player ${myTank?.letter ?? '?'})`
-    : `Player ${turnTank?.letter ?? '?'}'s turn`;
+    ? 'Your turn'
+    : `${turnTank?.colourName || 'Player'}'s turn`;
   text(turnLabel, Board.WIDTH - 30, turnRowY);
 
   hud.tank = myTank;
@@ -221,7 +221,7 @@ function drawGameEnd(state) {
   textSize(24);
   if (first && second && first.score > second.score) {
     fill(first.colourR, first.colourG, first.colourB);
-    text(`Player ${first.letter} wins!`, Board.WIDTH / 2, 100);
+    text(`${first.nickname || `Player ${first.letter}`} wins!`, Board.WIDTH / 2, 100);
   } else {
     fill(255);
     text("It's a tie!", Board.WIDTH / 2, 100);

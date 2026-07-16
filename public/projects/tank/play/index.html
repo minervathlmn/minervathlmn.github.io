@@ -158,6 +158,25 @@
   let mySessionId = null;
 
   // ---------------------------------------------------------------
+  // Lobby reconnection — separate sessionStorage namespace from the
+  // tankRoomId/tankReconnectToken/tankSessionId keys game/index.html's
+  // Network.js uses, so a lobby refresh and a game-page refresh never
+  // clobber each other's saved session.
+  // ---------------------------------------------------------------
+  const LOBBY_ROOM_ID_KEY = "tankLobbyRoomId";
+  const LOBBY_TOKEN_KEY = "tankLobbyToken";
+
+  function saveLobbySession(joinedRoom) {
+    sessionStorage.setItem(LOBBY_ROOM_ID_KEY, joinedRoom.roomId);
+    sessionStorage.setItem(LOBBY_TOKEN_KEY, joinedRoom.reconnectionToken);
+  }
+
+  function clearLobbySession() {
+    sessionStorage.removeItem(LOBBY_ROOM_ID_KEY);
+    sessionStorage.removeItem(LOBBY_TOKEN_KEY);
+  }
+
+  // ---------------------------------------------------------------
   // Screen router — reflects current screen in the URL query string
   // ---------------------------------------------------------------
   const screens = ["menu", "join", "room"];
@@ -169,18 +188,6 @@
     const params = new URLSearchParams(extraParams || {});
     params.set("screen", name);
     history.replaceState(null, "", "?" + params.toString());
-  }
-
-  function initialScreenFromURL() {
-    const params = new URLSearchParams(location.search);
-    const screen = params.get("screen");
-    // "room" is never valid on a fresh page load — it reflects a live
-    // Colyseus connection that doesn't survive a refresh (there's no
-    // lobby reconnect token, unlike the in-game screen). Trusting it
-    // here would show the room screen with room === null, which is the
-    // "broken page with only Public and Back" you were seeing. Treat a
-    // refreshed room URL the same as landing on the site fresh.
-    return "menu";
   }
 
   // ---------------------------------------------------------------
@@ -222,6 +229,12 @@
       document.getElementById("nicknameInput").value = sessionNickname || "";
     }
     backdrop.classList.add("open");
+
+    if (entryView.style.display !== "none") {
+      // Wait a tick for the backdrop to actually become visible/interactive
+      // before focusing, otherwise some browsers ignore the focus() call.
+      setTimeout(() => document.getElementById("nicknameInput").focus(), 0);
+    }
   }
 
   function closeNicknameModal() {
@@ -502,6 +515,7 @@
   function attachRoom(joinedRoom) {
     room = joinedRoom;
     mySessionId = room.sessionId;
+    saveLobbySession(joinedRoom);
 
     // Every callback below is guarded with `room !== joinedRoom`. Closing a
     // lobby (or being kicked, or leaving) doesn't tear down the Colyseus
@@ -521,6 +535,7 @@
 
     room.onMessage("gameStart", (payload) => {
       if (room !== joinedRoom) return;
+      clearLobbySession(); // handing off to game/index.html's own reconnect flow below
       sessionStorage.setItem("tankRoomId", room.roomId);
       sessionStorage.setItem("tankReconnectToken", room.reconnectionToken);
       sessionStorage.setItem("tankSessionId", mySessionId);
@@ -537,6 +552,7 @@
       if (room !== joinedRoom) return;
       alert("The host closed this lobby.");
       cleanupRoom();
+      clearLobbySession();
       showScreen("menu");
     });
 
@@ -544,6 +560,7 @@
       if (room !== joinedRoom) return;
       alert("You were removed from the lobby by the host.");
       cleanupRoom();
+      clearLobbySession();
       showScreen("menu");
     });
 
@@ -581,6 +598,12 @@
       const nameSpan = document.createElement("span");
       nameSpan.textContent = player.nickname;
       li.appendChild(nameSpan);
+      if (!player.connected) {
+        const tag = document.createElement("span");
+        tag.className = "reconnecting-tag";
+        tag.textContent = "Reconnecting…";
+        li.appendChild(tag);
+      }
       if (player.isOwner) {
         const tag = document.createElement("span");
         tag.className = "owner-tag";
@@ -645,6 +668,7 @@
       room.leave();
     }
     cleanupRoom();
+    clearLobbySession();
     showScreen("menu");
   });
 
@@ -654,6 +678,7 @@
       room.leave();
     }
     cleanupRoom();
+    clearLobbySession();
     showScreen("menu");
   });
 
@@ -682,27 +707,50 @@
   // a refresh instead of only appearing after going through the modal.
   sessionNickname = getSavedNickname();
   updatePlayingAsRow();
-  showScreen(initialScreenFromURL());
-  if (initialScreenFromURL() === "join") {
-    refreshPublicRoomList();
-    document.getElementById("codeInput").focus();
+
+  async function init() {
+    const lobbyRoomId = sessionStorage.getItem(LOBBY_ROOM_ID_KEY);
+    const lobbyToken = sessionStorage.getItem(LOBBY_TOKEN_KEY);
+
+    // A refresh (or flaky-connection drop) while in the room screen: try
+    // to silently rejoin the same lobby before showing anything else. This
+    // is the client half of the server's lobby reconnection grace — the
+    // token only matters if the server side is still holding the seat.
+    if (lobbyRoomId && lobbyToken) {
+      try {
+        const rejoined = await client.reconnect(lobbyToken);
+        attachRoom(rejoined);
+        return;
+      } catch (err) {
+        console.warn("Lobby reconnect failed or expired — starting fresh.", err);
+        clearLobbySession();
+      }
+    }
+
+    showScreen("menu");
   }
 
-  // initialScreenFromURL() only runs once, at initial script execution —
-  // it does NOT run again when the browser restores this page from
-  // bfcache (back-forward cache), which is exactly what happens when
-  // pressing Back from game/index.html (showScreen() uses replaceState,
-  // so there's no separate history entry per screen; Back navigates
-  // straight to whatever this page's DOM/JS state was the moment we left
-  // for game/index.html — still showing screen-room, with `room` pointing
-  // at a connection that's long gone). Without this, that's the exact
-  // "broken page with only Public and Back" ghost-room bug.
+  init();
+
+  // The lobby-reconnect attempt above only runs once, at initial script
+  // execution — it does NOT run again when the browser restores this page
+  // from bfcache (back-forward cache), which is exactly what happens when
+  // pressing Back from game/index.html (showScreen() uses replaceState, so
+  // there's no separate history entry per screen; Back navigates straight
+  // to whatever this page's DOM/JS state was the moment we left for
+  // game/index.html — still showing screen-room, with `room` pointing at a
+  // connection that's long gone). Without this, that's the exact "broken
+  // page with only Public and Back" ghost-room bug. We treat it as an
+  // intentional leave (send "leaveLobby" before room.leave()) rather than
+  // letting the server wait out a reconnection grace it'll never use.
   window.addEventListener("pageshow", (event) => {
     if (!event.persisted) return;
     if (room) {
+      try { room.send("leaveLobby"); } catch (e) { /* already gone */ }
       try { room.leave(); } catch (e) { /* already gone, nothing to clean up */ }
     }
     cleanupRoom();
+    clearLobbySession();
     showScreen("menu");
   });
 })();

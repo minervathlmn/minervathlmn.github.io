@@ -129,7 +129,7 @@ class PlayerHUD {
     textFont('Space Grotesk');
     textAlign(LEFT, TOP);
     textSize(19);
-    text(`Player ${this.tank.letter}`, x + p, y + p);
+    text(this.tank.nickname || `Player ${this.tank.letter}`, x + p, y + p);
 
     // health bar - filled with the tank's own colour, muted for legibility
     const barX = x + p;
