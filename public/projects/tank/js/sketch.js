@@ -180,7 +180,8 @@ function drawShots(state) {
 }
 
 function drawHUD(state) {
-  const turnRowY = 22;
+  // const turnRowY = 22;
+  const turnRowY = 0;
   const windRowY = turnRowY + 32;
 
   const myTank = state.tanks.get(mySessionId);
@@ -188,11 +189,17 @@ function drawHUD(state) {
 
   textSize(16);
   textAlign(RIGHT, TOP);
-  fill(...UI_THEME.hudText);
-  const turnLabel = TankNetwork.isMyTurn()
-    ? 'Your turn'
-    : `${turnTank?.colourName || 'Player'}'s turn`;
-  text(turnLabel, Board.WIDTH - 30, turnRowY);
+  // fill(...UI_THEME.hudText);
+  // const turnLabel = TankNetwork.isMyTurn()
+  //   ? 'Your turn'
+  //   : `${turnTank?.colourName || 'Player'}'s turn`;
+  // text(turnLabel, Board.WIDTH - 30, turnRowY);
+
+  // Turn text and scoreboard now live in the HTML sidebar (#turn-indicator,
+  // #scoreboard-rows) instead of being drawn on the canvas — updated here
+  // each frame since Colyseus state is only reliably read inside draw().
+  updateSidebarTurn(state);
+  updateSidebarScoreboard(state);
 
   hud.tank = myTank;
   hud.draw();

@@ -9,6 +9,10 @@
  */
 class CosmeticProjectile {
   static TURRET_TICK_FPS = 30; // matches server GameLogic.FPS
+  
+  static GRAVITY = 3.6;
+  static WIND_SCALE = 0.03;
+  static DRAG_COEFF = 0.15; // tune by playtesting — this is a guess, not derived
 
   constructor({ startX, startY, angle, power, wasXtra }, colour) {
     this.x = startX;
@@ -45,10 +49,12 @@ class CosmeticProjectile {
       this.explosion.radius = this.wasXtra ? 60 : 30;
     } else if (this.x <= 5 || this.y <= 5 || this.x >= Board.WIDTH - 5 || this.y >= Board.HEIGHT - 5) {
       this.done = true; // left the screen — no explosion
-    } else {
-      this.x += this.velX + (wind * 0.03) / CosmeticProjectile.TURRET_TICK_FPS;
+    } else { 
+      const windTargetVelX = wind * CosmeticProjectile.WIND_SCALE;
+      this.velX += (CosmeticProjectile.DRAG_COEFF * (windTargetVelX - this.velX)) / CosmeticProjectile.TURRET_TICK_FPS;
+      this.x += this.velX;
       this.y -= this.velY;
-      this.velY -= 3.6 / CosmeticProjectile.TURRET_TICK_FPS;
+      this.velY -= CosmeticProjectile.GRAVITY / CosmeticProjectile.TURRET_TICK_FPS;
     }
   }
 
