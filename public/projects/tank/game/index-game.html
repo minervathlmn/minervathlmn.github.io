@@ -1,0 +1,151 @@
+<!-- tank/game/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Page meta: character encoding, mobile viewport behaviour, tab title -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tanks — Minerva Limina</title>
+
+  <!-- Google Fonts: preconnect opens the connection to fonts.googleapis.com
+       and fonts.gstatic.com early, before the browser even knows it needs
+       them, so the actual font request below starts faster. The href on
+       the stylesheet link is one long URL (it's requesting several font
+       families/weights in a single request) — it can't be split across
+       lines without breaking the URL itself, so it's left on one line. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Page styles -->
+  <link rel="stylesheet" href="../style-common.css" />
+  <link rel="stylesheet" href="style-game.css" />
+</head>
+<body>
+
+  <!-- Mobile nav: hamburger button + dark overlay that appears behind the
+       sidebar when it's open on small screens. Kept as siblings of
+       #game-screen (not nested inside it) so their stacking/positioning
+       isn't affected by the game section's own layout. -->
+  <button
+    id="sidebar-toggle-btn"
+    class="sidebar-toggle-btn"
+    aria-label="Toggle menu"
+  >&#9776;</button>
+  <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+  <section id="game-screen">
+
+    <!-- Left sidebar: title, whose-turn indicator, scoreboard, and the
+         menu buttons (Shop/Info are stubs, not wired up yet — see the
+         empty click handlers near the bottom of this file). -->
+    <aside id="sidebar">
+      <h2 class="sidebar-title">Tank Wars</h2>
+
+      <p id="turn-indicator" class="turn-indicator">Your turn</p>
+
+      <div id="sidebar-scoreboard-wrap">
+        <div class="scoreboard">
+          <div class="scoreboard-heading">Scoreboard</div>
+          <div class="scoreboard-divider"></div>
+          <div id="scoreboard-rows" class="scoreboard-rows">
+            <!-- One .scoreboard-player-row per tank, injected by
+                 updateSidebarScoreboard() in UI-game.js -->
+          </div>
+        </div>
+        <div class="sidebar-divider"></div>
+      </div>
+
+      <button id="shop-btn" class="btn-sidebar">Shop</button>
+      <button id="info-btn" class="btn-sidebar">Info</button>
+
+      <div class="sidebar-spacer"></div>
+
+      <button id="sidebar-leave-btn" class="btn-sidebar">Leave</button>
+
+      <div class="sidebar-divider"></div>
+
+      <button id="settings-btn" class="btn-sidebar">Settings</button>
+    </aside>
+
+    <!-- p5 attaches its <canvas> element inside this div at runtime —
+         see cnv.parent('canvas-container') in sketch.js's setup(). -->
+    <div id="canvas-container"></div>
+  </section>
+
+  <!-- Settings modal: a "modal" is just an overlay panel that sits on top
+       of the page and blocks interaction with everything behind it until
+       closed. It's always present in the HTML but starts with the
+       "hidden" class (see style.css), which the settings-btn/close-btn
+       click handlers below toggle on and off. Appearance-only for now —
+       no gameplay settings live here yet. -->
+  <div id="settings-modal" class="sidebar-modal hidden">
+    <div class="sidebar-modal-content">
+      <button
+        id="close-settings-btn"
+        class="sidebar-modal-close"
+        aria-label="Close"
+      >&times;</button>
+      <h2 class="subtitle">Options</h2>
+
+      <div class="settings-section">
+        <p class="settings-heading">Appearance</p>
+        <div class="appearance-toggle">
+          <span class="toggle-label">Light</span>
+          <button
+            id="dark-mode-toggle"
+            class="toggle-switch"
+            role="switch"
+            aria-checked="false"
+            aria-label="Toggle dark mode"
+          >
+            <span class="toggle-knob"></span>
+          </button>
+          <span class="toggle-label">Dark</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Third-party libraries: p5 (canvas rendering) and Colyseus
+       (multiplayer networking client), both loaded from a CDN. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <script src="https://unpkg.com/colyseus.js@^0.16.0/dist/colyseus.js"></script>
+
+  <!-- Shared config, auto-synced from the server's constants.js — do not
+       edit directly (see rooms/logic/constants.js on the server, and
+       npm run sync-client). Must load before Board.js: Board's static
+       fields read Constants.X at class-definition time, not lazily. -->
+  <script src="../shared/constants.js"></script>
+
+  <!-- Network layer: Colyseus connection + reconnect handshake -->
+  <script src="js/Network.js"></script>
+
+  <!-- Shared helpers / palette -->
+  <script src="js/utils.js"></script>
+  <script src="js/theme.js"></script>
+
+  <!-- Domain/model classes -->
+  <script src="js/Board.js"></script>
+  <script src="js/Explosion.js"></script>
+  <script src="js/CosmeticProjectile.js"></script>
+  <script src="js/PlayerHUD.js"></script>
+
+  <!-- Feature modules: sidebar DOM updates, network event handling,
+       canvas rendering, keyboard/mouse input -->
+  <script src="js/network-handlers.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/input.js"></script>
+
+  <!-- p5 entry point — must load last: its setup()/draw() call into
+       everything above, and nothing above depends on it. -->
+  <script src="js/sketch.js"></script>
+
+  <!-- Sidebar chrome: toggle, settings modal, leave. -->
+  <script src="js/UI-sidebar.js"></script>
+
+</body>
+</html>

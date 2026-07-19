@@ -1,147 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tank Wars — Menu</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../style.css">
-
-<script src="https://unpkg.com/colyseus.js@0.16.22/dist/colyseus.js"></script>
-</head>
-<body>
-
-<!-- ======================= MENU ======================= -->
-<section class="screen" id="screen-menu">
-  <h1>Tank Wars</h1>
-  <div class="playing-as" id="playingAsRow" style="display:none;">
-    Playing as <strong id="playingAsName"></strong>
-    <button id="changeNameBtn">(not you?)</button>
-  </div>
-  <div class="menu-stack">
-    <button class="btn-primary big" id="quickJoinBtn">Quick Join</button>
-    <div class="row-two">
-      <button class="btn-secondary" id="createLobbyBtn">Create Lobby</button>
-      <button class="btn-secondary" id="joinOthersBtn">Join Others</button>
-    </div>
-  </div>
-  <button class="back-link" id="backToLandingBtn">Back</button>
-</section>
-
-<!-- ======================= JOIN OTHERS ======================= -->
-<section class="screen" id="screen-join">
-  <h1>Join Others</h1>
-  <div class="tabs">
-    <button class="tab-btn active" id="tabPublicBtn">Public Lobby</button>
-    <button class="tab-btn" id="tabPrivateBtn">Private Lobby</button>
-  </div>
-
-  <div class="tab-panel active" id="panel-public">
-    <ul class="room-list" id="publicRoomList"></ul>
-    <p class="empty-note" id="publicListEmpty" style="display:none;">No public lobbies right now — try Quick Join.</p>
-  </div>
-
-  <div class="tab-panel" id="panel-private">
-    <p style="text-align:center;">Enter code to join</p>
-    <input type="text" class="code-input" id="codeInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="0000" />
-    <p class="error-note" id="codeError"></p>
-    <div style="text-align:center;">
-      <button class="btn-primary" id="submitCodeBtn" style="padding:0.8rem 2.2rem; font-size:1.1rem;">Join</button>
-    </div>
-  </div>
-
-  <div class="footer-row">
-    <button class="back-link" id="joinBackBtn">Back</button>
-    <button class="btn-primary" id="joinQuickJoinBtn">Quick Join</button>
-  </div>
-</section>
-
-<!-- ======================= ROOM (create / joined lobby) ======================= -->
-<section class="screen" id="screen-room">
-  <div class="room-box">
-    <div class="room-main">
-      <!-- Sidebar: Close/Leave Lobby (top); code + Public/Private toggle (bottom) -->
-      <aside class="room-sidebar">
-        <button class="btn-secondary" id="ownerCloseBtn" style="display:none;">Close Lobby</button>
-        <button class="btn-secondary" id="guestLeaveBtn" style="display:none;">Leave Lobby</button>
-
-        <div class="sidebar-bottom">
-          <div class="code-display" id="codeDisplay" style="display:none;">
-            <span>Code:</span>
-            <span class="digits" id="codeDigits"></span>
-          </div>
-          <button class="btn-secondary visibility-toggle" id="visibilityToggleBtn">Public</button>
-        </div>
-      </aside>
-
-      <!-- Main content: player list -->
-      <div class="room-content">
-        <ul class="player-list" id="playerList"></ul>
-        <p class="waiting-note" id="waitingNote" style="display:none;">Waiting for the host to start…</p>
-      </div>
-    </div>
-
-    <div class="footer-row">
-      <button class="back-link" id="roomBackBtn">Back</button>
-      <button class="btn-primary" id="startBtn" style="display:none;" disabled>Start</button>
-    </div>
-  </div>
-</section>
-
-<!-- ======================= Quick Join overlay ======================= -->
-<div class="overlay" id="searchingOverlay">
-  <div class="overlay-box">
-    <div class="spinner"></div>
-    <p>Looking for players…</p>
-  </div>
-</div>
-
-<!-- ======================= Quick Join failed modal ======================= -->
-<div class="modal-backdrop" id="quickJoinFailBackdrop">
-  <div class="modal">
-    <h2>No game found</h2>
-    <p>Couldn't find a game right now. Do you want to create a new lobby?</p>
-    <div class="modal-actions">
-      <button class="btn-primary" id="quickJoinCreateBtn">Create Lobby</button>
-      <button class="btn-secondary" id="quickJoinCancelBtn">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- ======================= Nickname modal ======================= -->
-<div class="modal-backdrop" id="nicknameBackdrop">
-  <div class="modal">
-    <!-- returning-player view -->
-    <div id="modalReturning" style="display:none;">
-      <h2>Welcome back</h2>
-      <p>We noticed you've played as <strong id="returningName"></strong> before. Continue with this name?</p>
-      <div class="modal-actions">
-        <button class="btn-primary" id="continueSavedBtn">Continue as <span id="continueSavedName"></span></button>
-        <button class="btn-secondary" id="useDifferentBtn">Use a different name</button>
-      </div>
-    </div>
-
-    <!-- name entry view -->
-    <div id="modalEntry">
-      <h2>Choose a nickname</h2>
-      <input type="text" id="nicknameInput" maxlength="16" placeholder="Your nickname" />
-      <p class="error-note" id="nicknameError"></p>
-      <p class="note">Your nickname will be used to record scores on the global leaderboard.</p>
-      <label class="checkbox-row">
-        <input type="checkbox" id="rememberMeCheckbox" checked />
-        Save my name &amp; scores on this device
-      </label>
-      <div class="modal-actions">
-        <button class="btn-primary" id="confirmNicknameBtn">Continue</button>
-        <button class="btn-secondary" id="cancelNicknameBtn">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
 (function () {
   "use strict";
 
@@ -293,14 +149,14 @@
 
   document.getElementById("changeNameBtn").addEventListener("click", () => {
     sessionNickname = null;
-    requireNickname(() => {}); // just reopens the picker; no action queued
+    requireNickname(() => { }); // just reopens the picker; no action queued
   });
 
   // ---------------------------------------------------------------
   // Menu screen actions
   // ---------------------------------------------------------------
   document.getElementById("backToLandingBtn").addEventListener("click", () => {
-    window.location.href = "../index.html";
+    window.location.href = "../index-play.html";
   });
 
   document.getElementById("quickJoinBtn").addEventListener("click", () => {
@@ -540,7 +396,7 @@
       sessionStorage.setItem("tankReconnectToken", room.reconnectionToken);
       sessionStorage.setItem("tankSessionId", mySessionId);
       sessionStorage.setItem("tankSeed", String(payload.seed));
-      window.location.href = "../game/index.html";
+      window.location.href = "../game/index-game.html";
     });
 
     room.onMessage("startFailed", (payload) => {
@@ -754,7 +610,3 @@
     showScreen("menu");
   });
 })();
-</script>
-
-</body>
-</html>

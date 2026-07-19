@@ -1,0 +1,17 @@
+/* ============================================================
+   home.css — tank/index.html only (landing hero + Rules modal
+   trigger; the modal itself is styled by common.css's .modal
+   component).
+   ============================================================ */
+
+main {
+  text-align: center;
+  padding: 2rem;
+}
+
+.actions {
+  display: flex;
+  gap: 1.25rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}

@@ -1,0 +1,216 @@
+/* ============================================================
+   common.css — shared across all three Tank Wars pages
+   (tank/index.html, tank/play/index.html, tank/game/index.html).
+   Page-specific styles live in home.css / play.css / game.css.
+   ============================================================ */
+
+:root {
+  --beige: #ecdfc8;
+  --beige-light: #f4efe1;
+  --maroon: #5c2b2b;
+  --maroon-deep: #3d1c1c;
+  --maroon-dim: #7a4441;
+  --maroon-faint: rgba(92, 43, 43, 0.08);   /* #5C2B2B14 */
+  --green: #8a9b6e;
+  --plum: #c9b6d6;
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'Inter', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--beige-light);
+  color: var(--maroon-deep);
+  font-family: var(--font-body);
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Headings ------------------------------------------------------- */
+
+h1 {
+  font-family: 'Archivo Black', var(--font-display), sans-serif;
+  font-size: clamp(3rem, 9vw, 6.5rem);
+  font-weight: 555;
+  color: var(--maroon);
+  letter-spacing: 0.04em;
+  margin: 0 0 3rem;
+  text-transform: uppercase;
+}
+
+/* --- Buttons ---------------------------------------------------------
+   Used by home (Play/Rules) and play (menu/join/room/modal actions).
+   game.css's .btn-sidebar is deliberately its own thing, not built on
+   these — see the note there. */
+
+button {
+  font-family: inherit;
+  font-size: 1.5rem;
+  padding: 0.9rem 2.5rem;
+  border-radius: 8px;
+  border: 2px solid var(--maroon);
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--maroon);
+  color: var(--beige-light);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--maroon-dim);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--maroon);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--maroon-faint);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button { transition: none; }
+}
+
+/* --- Text inputs -------------------------------------------------------
+   Used by play (nickname input, lobby code input). */
+
+input[type="text"] {
+  font-family: inherit;
+  font-size: 1.1rem;
+  padding: 0.7rem 1rem;
+  border: 2px solid var(--maroon);
+  border-radius: 8px;
+  background: var(--beige-light);
+  color: var(--maroon);
+  width: 100%;
+}
+
+input[type="text"]:focus {
+  outline: 3px solid var(--maroon-faint);
+}
+
+/* --- Modal component -----------------------------------------------
+   Used by home's Rules modal and play's Quick Join failed / Nickname
+   modals — all three share this backdrop/box/open convention.
+   game/index.html's settings modal intentionally does NOT use this;
+   see the .sidebar-modal-* namespace note in game.css. */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 20, 18, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 30;
+}
+
+.modal-backdrop.open { display: flex; }
+
+.modal {
+  background: var(--beige-light);
+  border: 2px solid var(--maroon);
+  border-radius: 10px;
+  max-width: 480px;
+  width: 100%;
+  padding: 2rem;
+  text-align: left;
+}
+
+.modal h2 {
+  margin-top: 0;
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.modal p {
+  line-height: 1.5;
+}
+
+.modal ul {
+  line-height: 1.7;
+  padding-left: 1.2rem;
+}
+
+.modal .note {
+  font-size: 0.9rem;
+  color: var(--maroon-dim);
+}
+
+.modal label.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  margin: 1rem 0;
+}
+
+.modal .close-row {
+  text-align: right;
+  margin-top: 1.5rem;
+}
+
+.modal .modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.modal .modal-actions button {
+  flex: 1;
+  padding: 0.7rem;
+  font-size: 1rem;
+}
+
+.modal button {
+  font-size: 1.1rem;
+  padding: 0.5rem 1.5rem;
+}
+
+/* --- Canvas container --------------------------------------------------
+   Base drop-shadow + responsive sizing for a p5 canvas wrapper. Kept
+   here rather than in game.css because a comment elsewhere in the
+   original stylesheet notes this id is "reused by the landing/demo
+   canvases" — pages not included in this review. game.css overrides
+   the shadow off for the full-bleed #game-screen layout. */
+
+#canvas-container {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  line-height: 0; /* avoid a few px of extra space under <canvas> */
+}
+
+#canvas-container canvas {
+  display: block;
+  /* Board is 864x640 (27:20). Convert the 90vh limit into an equivalent
+     width via that ratio, then take whichever of the two width limits
+     (viewport width vs. viewport-height-derived width) is smaller, so
+     the canvas always fits without overflowing either axis. */
+  width: min(90vw, calc(90vh * 864 / 640));
+  height: auto;
+  aspect-ratio: 864 / 640;
+}

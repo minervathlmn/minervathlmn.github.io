@@ -1,0 +1,415 @@
+/* ============================================================
+   play.css — tank/play/index.html only (menu / join others / room
+   screens, quick join overlay + fail modal, nickname modal). The
+   modal component itself (backdrop/box/actions) is in common.css.
+   ============================================================ */
+
+/* --- Shared screen layout --- */
+
+.screen {
+  display: none;
+  width: 100%;
+  max-width: 640px;
+}
+
+.screen.active {
+  display: block;
+}
+
+.screen h1 {
+  text-align: center;
+  font-size: clamp(2rem, 6vw, 3rem);
+  margin: 0 0 2.5rem;
+}
+
+.back-link {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 2.5rem;
+  background: none;
+  border: none;
+  color: var(--maroon);
+  text-decoration: underline;
+  font-size: 1.1rem;
+}
+
+.error-note {
+  color: #a33;
+  text-align: center;
+  margin: 0.5rem 0 0;
+  min-height: 1.2rem;
+}
+
+/* --- Menu screen --- */
+
+.playing-as {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--maroon-dim);
+  font-size: 0.95rem;
+}
+
+.playing-as button {
+  background: none;
+  border: none;
+  color: var(--maroon);
+  text-decoration: underline;
+  font-size: 0.95rem;
+  padding: 0;
+  margin-left: 0.3rem;
+}
+
+.menu-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+#screen-menu button.big {
+  font-size: 1.4rem;
+  padding: 1rem 3rem;
+  width: 320px;
+  max-width: 100%;
+}
+
+#screen-menu .row-two {
+  display: flex;
+  gap: 1.1rem;
+  width: 320px;
+  max-width: 100%;
+}
+
+#screen-menu .row-two button {
+  flex: 1;
+  font-size: 1.1rem;
+  padding: 1rem 0.5rem;
+}
+
+/* --- Join others screen --- */
+
+.tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.7rem;
+  font-size: 1.1rem;
+  background: transparent;
+  color: var(--maroon);
+}
+
+.tab-btn.active {
+  background: var(--maroon);
+  color: var(--beige-light);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+/* Generic centering utility — replaces the inline text-align:center
+   used on the "Enter code to join" <p> and its Join-button wrapper.
+   Swap those style="text-align:center;" attributes for class="text-center". */
+.text-center {
+  text-align: center;
+}
+
+input[type="text"].code-input {
+  font-size: 2rem;
+  letter-spacing: 1.2rem;
+  text-align: left;
+  display: block;
+  width: calc(4ch + 6rem + 0.3rem);
+  margin: 0 auto 1rem;
+  padding: 0.7rem 0 0.7rem 1.2rem;
+}
+
+/* Replaces #submitCodeBtn's inline style="padding:0.8rem 2.2rem;
+   font-size:1.1rem;" — swap that attribute for class="btn-code-submit". */
+.btn-code-submit {
+  padding: 0.8rem 2.2rem;
+  font-size: 1.1rem;
+}
+
+.room-list {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 3rem;
+}
+
+.room-list li button {
+  width: 100%;
+  text-align: left;
+  padding: 0.8rem 1.2rem;
+  font-size: 1.05rem;
+  background: transparent;
+}
+
+.room-list li button:hover {
+  background: var(--maroon-faint);
+}
+
+.empty-note {
+  text-align: center;
+  color: var(--maroon-dim);
+  font-style: italic;
+}
+
+.footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
+.footer-row button {
+  font-size: 1.1rem;
+  padding: 0.7rem 1.6rem;
+}
+
+.footer-row .back-link {
+  /* Matches .room-sidebar's min-width so "Back" centers under the
+     Close Lobby / Public-Private column above it, instead of centering
+     within the whole footer row (which would drift it toward Start). */
+  width: 160px;
+  flex: 0 0 auto;
+  text-align: center;
+  margin: 0;
+  padding: 0.7rem 0;
+}
+
+/* --- Room screen --- */
+
+.room-box {
+  border: 2px solid var(--maroon);
+  border-radius: 12px;
+  padding: 1.75rem;
+}
+
+.room-main {
+  display: flex;
+  gap: 1.75rem;
+  align-items: stretch;
+  margin-bottom: 1.5rem;
+}
+
+.room-sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 160px;
+}
+
+.room-sidebar .btn-secondary {
+  width: 100%;
+  font-size: 1.1rem;
+  padding: 1rem 0.5rem;
+}
+
+/* Groups the code display with the visibility toggle so they move as a
+   unit, pinned to the bottom of the sidebar while Close/Leave Lobby stays
+   pinned to the top (via the parent's justify-content: space-between). */
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.room-sidebar .code-display {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0;
+}
+
+.room-sidebar .code-display .digits {
+  gap: 0.35rem;
+}
+
+.room-sidebar .code-display .digit {
+  width: 1.9rem;
+  height: 2.3rem;
+  font-size: 1.1rem;
+}
+
+.room-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  position: relative; /* anchor for the absolutely positioned note */
+}
+
+.waiting-note {
+  text-align: center;
+  color: var(--maroon-dim);
+  font-style: italic;
+  margin: 0 0 1rem;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%; /* just below the list */
+  margin-top: 0.5rem;
+}
+
+/* Reserves room for a full 4-player lobby (owner + 3) so the box doesn't
+   grow/shrink as players join — 4 rows at ~3.1rem each plus 3 gaps. */
+.player-list {
+  list-style: none;
+  margin: 0 0 2.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: calc(4 * 3.1rem + 3 * 0.6rem);
+}
+
+.player-list li {
+  padding: 0.6rem 1rem;
+  font-size: 1.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 6px;
+}
+
+/* Highlights the current client's row. Applied at the <li> level so the
+   background always spans the full row width, whether or not this
+   player happens to hold the Owner tag. */
+.player-list li.is-you {
+  background: var(--maroon-faint);
+}
+
+.player-list li .owner-tag {
+  font-size: 0.95rem;
+  color: var(--maroon-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  min-width: 70px;
+  text-align: right;
+}
+
+/* Fixed-width slot at the end of each player row. Reserves the same
+   space whether it's holding the owner tag, a kick button, or nothing —
+   keeps row width (and therefore the whole room-box, which sizes to
+   content) consistent no matter who's viewing the lobby. */
+.player-list li .row-end {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 92px;
+}
+
+.btn-kick {
+  background: transparent;
+  color: #a33;
+  border: 2px solid #a33;
+  border-radius: 0;
+  box-shadow:
+    0 0 0 2px var(--beige-light),
+    0 0 0 4px #a33;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.35rem 0.8rem;
+  min-width: 70px;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.btn-kick:hover {
+  background: #a33;
+  color: var(--beige-light);
+  transform: translateY(-1px) rotate(-0.5deg);
+}
+
+.visibility-toggle {
+  transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.visibility-toggle.is-private {
+  background: var(--maroon);
+  color: var(--beige-light);
+}
+
+/* .btn-secondary:hover:not(:disabled) has slightly higher specificity
+   (three simple selectors vs. two), so without this override hovering a
+   private toggle would fall back to the generic faint-beige hover instead
+   of a deeper maroon. */
+.visibility-toggle.is-private:hover:not(:disabled) {
+  background: var(--maroon-dim);
+  color: var(--beige-light);
+}
+
+.code-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.code-display .digits {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.code-display .digit {
+  border: 2px solid var(--maroon);
+  border-radius: 6px;
+  width: 2.2rem;
+  height: 2.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+/* --- Searching overlay --- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(244, 239, 225, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 20;
+}
+
+.overlay.open {
+  display: flex;
+}
+
+.overlay-box {
+  text-align: center;
+  font-size: 1.4rem;
+}
+
+.spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid var(--maroon-faint);
+  border-top-color: var(--maroon);
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

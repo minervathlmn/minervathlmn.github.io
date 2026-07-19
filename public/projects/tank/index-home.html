@@ -1,0 +1,81 @@
+<!-- tank/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Page meta: character encoding, mobile viewport behaviour, tab title -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tank Wars</title>
+
+  <!-- Google Fonts: same four-font set used across all three pages
+       (home / play / game), so the same UI classes render identically
+       everywhere. Keep this block byte-identical to the other two pages'
+       <head> — see game/index.html for the canonical version. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Page styles -->
+  <link rel="stylesheet" href="style-common.css" />
+  <link rel="stylesheet" href="style-home.css" />
+</head>
+<body>
+
+  <!-- Landing hero: title + Play/Rules buttons. Play navigates straight
+       to the menu screen; Rules opens the modal below without leaving
+       this page. -->
+  <main>
+    <h1>Tank Wars</h1>
+    <div class="actions">
+      <button class="btn-primary" id="playBtn">Play</button>
+      <button class="btn-secondary" id="rulesBtn">Rules</button>
+    </div>
+  </main>
+
+  <!-- Rules modal: always present in the DOM, shown/hidden via the
+       "open" class (see style.css) toggled by the handlers below. -->
+  <div class="modal-backdrop" id="rulesBackdrop">
+    <div class="modal">
+      <h2>Rules</h2>
+      <ul>
+        <li>Up to 4 players take turns firing at each other across the terrain.</li>
+        <li>Set your angle and power, then fire — wind affects your shot.</li>
+        <li>Terrain can be destroyed and will crumble beneath tanks.</li>
+        <li>Collect fuel and parachute drops when they appear.</li>
+        <li>Last tank standing wins.</li>
+      </ul>
+      <div class="close-row">
+        <button class="btn-secondary" id="closeRules">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Play: hand off to the menu screen. No Colyseus connection is made
+    // on this page at all — that only starts once the player reaches
+    // play/index.html.
+    document.getElementById('playBtn').addEventListener('click', () => {
+      window.location.href = 'play/index-play.html';
+    });
+
+    // Rules modal: open on click, close via the Close button or by
+    // clicking the dark backdrop itself (but not the modal content —
+    // the e.target === backdrop check below is what makes clicks
+    // inside the modal box not count as "clicking the backdrop").
+    const backdrop = document.getElementById('rulesBackdrop');
+    document.getElementById('rulesBtn').addEventListener('click', () => {
+      backdrop.classList.add('open');
+    });
+    document.getElementById('closeRules').addEventListener('click', () => {
+      backdrop.classList.remove('open');
+    });
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) backdrop.classList.remove('open');
+    });
+  </script>
+
+</body>
+</html>

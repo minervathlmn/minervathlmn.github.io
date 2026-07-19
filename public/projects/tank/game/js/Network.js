@@ -1,5 +1,5 @@
 /**
- * Loaded only on the GAME page (game/index.html). Reconnects to the
+ * Loaded only on the GAME page (game/index-game.html). Reconnects to the
  * Colyseus room already joined in the lobby, using the token play page
  * saved to sessionStorage.
  *
@@ -33,7 +33,7 @@ const TankNetwork = (function () {
 
     if (!roomId || !token) {
       console.error("No lobby session found — returning to menu.");
-      window.location.href = "../play/index.html";
+      window.location.href = "../play/index-play.html";
       return;
     }
 
@@ -41,7 +41,7 @@ const TankNetwork = (function () {
       room = await client.reconnect(token);
     } catch (err) {
       console.error("Reconnect to game room failed:", err);
-      window.location.href = "../play/index.html";
+      window.location.href = "../play/index-play.html";
       return;
     }
 

@@ -1,0 +1,236 @@
+<!-- tank/play/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Page meta: character encoding, mobile viewport behaviour, tab title -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tank Wars — Menu</title>
+
+  <!-- Google Fonts: same four-font set used across all three pages
+       (home / play / game), so the same UI classes render identically
+       everywhere. Keep this block byte-identical to the other two
+       pages' <head> — see game/index.html for the canonical version. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+
+  <!-- Page styles -->
+  <link rel="stylesheet" href="../style-common.css" />
+  <link rel="stylesheet" href="style-play.css" />
+
+  <!-- Colyseus networking client — loaded here rather than lower in
+       body, since this page's own <script> at the bottom (unlike
+       game/index.html's split-into-files approach) needs it available
+       immediately when that script starts running. -->
+  <script src="https://unpkg.com/colyseus.js@0.16.22/dist/colyseus.js"></script>
+</head>
+
+<body>
+
+  <!-- ======================= MENU ======================= -->
+  <section class="screen" id="screen-menu">
+    <h1>Tank Wars</h1>
+
+    <!-- Shown only if a nickname was saved from a previous visit (see
+       updatePlayingAsRow() in the script below). Starts hidden via
+       inline style since JS decides at load time whether to reveal it —
+       before any script runs, there's no nickname to show yet. -->
+    <div class="playing-as" id="playingAsRow" style="display:none;">
+      Playing as <strong id="playingAsName"></strong>
+      <button id="changeNameBtn">(not you?)</button>
+    </div>
+
+    <div class="menu-stack">
+      <button class="btn-primary big" id="quickJoinBtn">Quick Join</button>
+      <div class="row-two">
+        <button class="btn-secondary" id="createLobbyBtn">Create Lobby</button>
+        <button class="btn-secondary" id="joinOthersBtn">Join Others</button>
+      </div>
+    </div>
+
+    <button class="back-link" id="backToLandingBtn">Back</button>
+  </section>
+
+  <!-- ======================= JOIN OTHERS ======================= -->
+  <section class="screen" id="screen-join">
+    <h1>Join Others</h1>
+
+    <!-- Tab switcher: Public Lobby list vs. Private Lobby code entry.
+        Active tab/panel pairing is handled by classList.toggle("active")
+        in the script below (see setTab()), not by anything here. -->
+    <div class="tabs">
+      <button class="tab-btn active" id="tabPublicBtn">Public Lobby</button>
+      <button class="tab-btn" id="tabPrivateBtn">Private Lobby</button>
+    </div>
+
+    <div class="tab-panel active" id="panel-public">
+      <ul class="room-list" id="publicRoomList"></ul>
+      <!-- Hidden by default; shown by refreshPublicRoomList() only when
+          there are zero rooms to list, or the room-list fetch fails. -->
+      <p
+        class="empty-note"
+        id="publicListEmpty"
+        style="display:none;"
+      >No public lobbies right now — try Quick Join.</p>
+    </div>
+
+    <div class="tab-panel" id="panel-private">
+      <p style="text-align:center;">Enter code to join</p>
+      <input
+        type="text"
+        class="code-input"
+        id="codeInput"
+        maxlength="4"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        placeholder="0000"
+      />
+      <p class="error-note" id="codeError"></p>
+      <div style="text-align:center;">
+        <button
+          class="btn-primary"
+          id="submitCodeBtn"
+          style="padding:0.8rem 2.2rem; font-size:1.1rem;"
+        >Join</button>
+      </div>
+    </div>
+
+    <div class="footer-row">
+      <button class="back-link" id="joinBackBtn">Back</button>
+      <button class="btn-primary" id="joinQuickJoinBtn">Quick Join</button>
+    </div>
+  </section>
+
+  <!-- ======================= ROOM (create / joined lobby) ======================= -->
+  <section class="screen" id="screen-room">
+    <div class="room-box">
+      <div class="room-main">
+
+        <!-- Sidebar: owner sees "Close Lobby" + Start button; guest sees
+            "Leave Lobby" + waiting note instead. Role-based visibility is
+            set in the script below (see the ~line-625 owner/guest split)
+            — all five display toggles driven by one isOwner check. -->
+        <aside class="room-sidebar">
+          <button
+            class="btn-secondary"
+            id="ownerCloseBtn"
+            style="display:none;"
+          >Close Lobby</button>
+          <button
+            class="btn-secondary"
+            id="guestLeaveBtn"
+            style="display:none;"
+          >Leave Lobby</button>
+
+          <div class="sidebar-bottom">
+            <!-- Room code, shown only when the lobby is set to Private -->
+            <div
+              class="code-display"
+              id="codeDisplay"
+              style="display:none;"
+            >
+              <span>Code:</span>
+              <span class="digits" id="codeDigits"></span>
+            </div>
+            <button class="btn-secondary visibility-toggle" id="visibilityToggleBtn">Public</button>
+          </div>
+        </aside>
+
+        <!-- Main content: player list -->
+        <div class="room-content">
+          <ul class="player-list" id="playerList"></ul>
+          <p
+            class="waiting-note"
+            id="waitingNote"
+            style="display:none;"
+          >Waiting for the host to start…</p>
+        </div>
+      </div>
+
+      <div class="footer-row">
+        <button class="back-link" id="roomBackBtn">Back</button>
+        <button
+          class="btn-primary"
+          id="startBtn"
+          style="display:none;"
+          disabled
+        >Start</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= Quick Join overlay ======================= -->
+  <!-- Shown while doQuickJoin() searches for an open public room. Toggled
+      via classList.add/remove("open") — see QUICK_JOIN_MIN_DISPLAY_MS
+      below, which keeps this visible for a minimum time even if the
+      search resolves instantly, so it doesn't just flash on screen. -->
+  <div class="overlay" id="searchingOverlay">
+    <div class="overlay-box">
+      <div class="spinner"></div>
+      <p>Looking for players…</p>
+    </div>
+  </div>
+
+  <!-- ======================= Quick Join failed modal ======================= -->
+  <!-- Shown when doQuickJoin() finds no available room. Same
+      modal-backdrop/modal/"open" pattern as the home page's Rules
+      modal — the convention #settings-modal on the game page should
+      eventually match (see our earlier note, revisit once in style.css). -->
+  <div class="modal-backdrop" id="quickJoinFailBackdrop">
+    <div class="modal">
+      <h2>No game found</h2>
+      <p>Couldn't find a game right now. Do you want to create a new lobby?</p>
+      <div class="modal-actions">
+        <button class="btn-primary" id="quickJoinCreateBtn">Create Lobby</button>
+        <button class="btn-secondary" id="quickJoinCancelBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= Nickname modal ======================= -->
+  <!-- Two sub-views (returning-player vs. name-entry) inside one backdrop,
+      switched by openNicknameModal() based on whether a saved nickname
+      exists. Backdrop uses the standard modal-backdrop/"open" toggle;
+      the two inner views currently use inline style.display instead —
+      flagged for unification along with the other inline-style toggles
+      when we get to the script review. -->
+  <div class="modal-backdrop" id="nicknameBackdrop">
+    <div class="modal">
+
+      <!-- returning-player view -->
+      <div id="modalReturning" style="display:none;">
+        <h2>Welcome back</h2>
+        <p>We noticed you've played as <strong id="returningName"></strong> before. Continue with this name?</p>
+        <div class="modal-actions">
+          <button class="btn-primary" id="continueSavedBtn">Continue as <span id="continueSavedName"></span></button>
+          <button class="btn-secondary" id="useDifferentBtn">Use a different name</button>
+        </div>
+      </div>
+
+      <!-- name entry view -->
+      <div id="modalEntry" style="display:none;">
+        <h2>Choose a nickname</h2>
+        <input type="text" id="nicknameInput" maxlength="16" placeholder="Your nickname" />
+        <p class="error-note" id="nicknameError"></p>
+        <p class="note">Your nickname will be used to record scores on the global leaderboard.</p>
+        <label class="checkbox-row">
+          <input type="checkbox" id="rememberMeCheckbox" checked />
+          Save my name &amp; scores on this device
+        </label>
+        <div class="modal-actions">
+          <button class="btn-primary" id="confirmNicknameBtn">Continue</button>
+          <button class="btn-secondary" id="cancelNicknameBtn">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script src="js/play.js"></script>
+
+</body>
+
+</html>
