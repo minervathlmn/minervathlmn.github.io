@@ -1,4 +1,4 @@
-// AUTO-SYNCED from server rooms/logic/constants.js on 2026-07-18T02:05:27.429Z — do not edit directly
+// AUTO-SYNCED from server shared/constants.js on 2026-07-19T11:17:57.312Z — do not edit directly
 const Constants = {
   FPS: 30,
   INITIAL_PARACHUTES: 1,

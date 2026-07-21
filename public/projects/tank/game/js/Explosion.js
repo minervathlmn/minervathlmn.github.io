@@ -1,7 +1,7 @@
 class Explosion {
   constructor() {
-    this.x = -50;
-    this.y = -50;
+    this.x = 0;
+    this.y = 0;
     this.radius = 30;
 
     this.active = false;
