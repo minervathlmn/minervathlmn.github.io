@@ -153,12 +153,19 @@
 
       <div class="footer-row">
         <button class="back-link" id="roomBackBtn">Back</button>
-        <button
-          class="btn-primary"
-          id="startBtn"
-          style="display:none;"
-          disabled
-        >Start</button>
+        <div class="footer-actions">
+          <button
+            class="btn-secondary"
+            id="addBotBtn"
+            style="display:none;"
+          >+ Bot</button>
+          <button
+            class="btn-primary"
+            id="startBtn"
+            style="display:none;"
+            disabled
+          >Start</button>
+        </div>
       </div>
     </div>
   </section>
@@ -229,6 +236,7 @@
     </div>
   </div>
 
+<script src="../shared/constants.js"></script>
 <script src="js/play.js"></script>
 
 </body>

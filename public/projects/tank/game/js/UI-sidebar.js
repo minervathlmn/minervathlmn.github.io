@@ -1,7 +1,8 @@
 // === SHARED REFS & HELPERS ===========================================
 // Used by render.js's updateSidebarTurn/updateSidebarScoreboard as well.
 
-const turnIndicatorEl = document.getElementById('turn-indicator');
+const turnIndicatorEl = document.getElementById('turn-indicator-text');
+const turnTimerBarEl = document.getElementById('turn-timer-bar');
 const scoreboardRowsEl = document.getElementById('scoreboard-rows');
 let lastScoreboardKey = null; // avoids re-writing the DOM every frame when nothing changed
 

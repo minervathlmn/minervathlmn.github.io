@@ -50,7 +50,13 @@ function drawTankVisual(t) {
   stroke(0);
   line(t.x, t.y - 6, turretX, turretY);
 
-  stroke(t.colourR, t.colourG, t.colourB);
+  // stroke(t.colourR, t.colourG, t.colourB);
+  // line(t.x - 4, t.y - 4, t.x + 4, t.y - 4);
+  // line(t.x - 8, t.y, t.x + 8, t.y);
+  // noStroke();
+  
+  const [r, g, b] = t.isBot ? botShade([t.colourR, t.colourG, t.colourB]) : [t.colourR, t.colourG, t.colourB];
+  stroke(r, g, b);
   line(t.x - 4, t.y - 4, t.x + 4, t.y - 4);
   line(t.x - 8, t.y, t.x + 8, t.y);
   noStroke();
@@ -91,6 +97,7 @@ function drawHUD(state) {
   const myTank = state.tanks.get(mySessionId);
 
   updateSidebarTurn(state);
+  updateSidebarTimer(state);
   updateSidebarScoreboard(state);
 
   hud.tank = myTank;
@@ -162,22 +169,35 @@ function updateSidebarTurn(state) {
     : `${turnTank?.colourName || 'Player'}'s turn`;
 }
 
+function updateSidebarTimer(state) {
+  if (!turnTimerBarEl) return;
+  const remaining = state.turnEndsAt - Date.now();
+  const frac = clamp(remaining / Constants.TURN_TIME_LIMIT_MS, 0, 1);
+  turnTimerBarEl.style.width = `${frac * 100}%`;
+}
+
 function updateSidebarScoreboard(state) {
   if (!scoreboardRowsEl) return;
 
   const tanks = [...state.tanks.values()].sort((a, b) => a.letter.localeCompare(b.letter));
 
-  const key = tanks.map(t => `${t.letter}:${t.score}`).join(',');
+  const key = tanks.map(t => `${t.letter}:${t.score}:${t.health}`).join(',');
   if (key === lastScoreboardKey) return;
   lastScoreboardKey = key;
 
   scoreboardRowsEl.innerHTML = tanks.map(t => {
     const name = t.nickname || `Player ${t.letter}`;
     const colour = `rgb(${t.colourR}, ${t.colourG}, ${t.colourB})`;
+    const healthPct = clamp(t.health, 0, 100);
     return `
       <div class="scoreboard-player-row">
-        <span class="player-name" style="color: ${colour}">${escapeHtml(name)}</span>
-        <span class="player-score">${t.score}</span>
+        <div class="scoreboard-player-row-top">
+          <span class="player-name" style="color: ${colour}">${escapeHtml(name)}</span>
+          <span class="player-score">${t.score}</span>
+        </div>
+        <div class="player-health-track">
+          <div class="player-health-bar" style="width:${healthPct}%; background:${colour}"></div>
+        </div>
       </div>`;
   }).join('');
 }

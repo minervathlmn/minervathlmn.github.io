@@ -72,6 +72,21 @@
   padding: 0.4rem 0.6rem;
   margin: 0 0 1rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.turn-timer-track {
+  height: 4px;
+  background: rgba(244, 239, 225, 0.15);
+}
+
+.turn-timer-bar {
+  height: 100%;
+  width: 100%;                 /* set inline per-frame by render.js */
+  background: var(--beige-light);
+  transition: width 0.1s linear;
 }
 
 #sidebar-scoreboard-wrap.hidden { display: none; }
@@ -108,21 +123,38 @@
 
 .scoreboard-player-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;   /* was row-level flex before; now the health bar stacks under name+score */
+  gap: 0;
   font-family: var(--font-mono);
   font-size: 0.85rem;
 }
 
+.scoreboard-player-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .scoreboard-player-row .player-name {
   font-weight: 500;
-  -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.6);
+  /* -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.6); */
   /* text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4); */
 }
 
 .scoreboard-player-row .player-score {
   font-family: var(--font-display);
   font-weight: 700;
+}
+
+.player-health-track {
+  height: 4px;
+  background: rgba(244, 239, 225, 0.15);
+  /* margin-top: 0.25rem; */
+}
+
+.player-health-bar {
+  height: 100%;
+  transition: width 0.15s ease-out;
 }
 
 .sidebar-divider {
@@ -306,32 +338,40 @@
   background: var(--beige-light);
   color: var(--maroon-deep);
 }
+
 #game-screen.dark-mode #sidebar .turn-indicator {
   color: var(--maroon-deep);
   background: rgba(92, 43, 43, 0.1);
 }
+
 #game-screen.dark-mode #sidebar .sidebar-divider {
   background: rgba(92, 43, 43, 0.2);
 }
+
 #game-screen.dark-mode #sidebar .btn-sidebar {
   color: var(--maroon-deep);
   border-color: rgba(92, 43, 43, 0.4);
 }
+
 #game-screen.dark-mode #sidebar .btn-sidebar:hover,
 #game-screen.dark-mode #sidebar .btn-sidebar.active {
   background: var(--maroon-deep);
   color: var(--beige-light);
   border-color: var(--maroon-deep);
 }
+
 #game-screen.dark-mode #sidebar .scoreboard {
   background: rgba(92, 43, 43, 0.08);
 }
+
 #game-screen.dark-mode #sidebar .scoreboard-heading {
   color: var(--maroon-deep);
 }
+
 #game-screen.dark-mode #sidebar .scoreboard-divider {
   background: rgba(92, 43, 43, 0.2);
 }
+
 /* player-name/player-score inherit #sidebar's color, so they flip to
    maroon-deep automatically. The name's white text-stroke (added for
    contrast on the dark maroon sidebar) needs to flip to a dark stroke
@@ -339,6 +379,11 @@
 #game-screen.dark-mode #sidebar .scoreboard-player-row .player-name {
   -webkit-text-stroke: 0.5px rgba(0, 0, 0, 0.4);
 }
+
+#game-screen.dark-mode .player-health-track {
+  background: rgba(92, 43, 43, 0.15);
+}
+
 #game-screen.dark-mode #canvas-container {
   background: var(--maroon);
 }

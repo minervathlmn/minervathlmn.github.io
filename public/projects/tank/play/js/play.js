@@ -451,28 +451,57 @@
       const li = document.createElement("li");
       li.classList.toggle("is-you", sessionId === mySessionId);
 
+      const nameGroup = document.createElement("span");
+      nameGroup.className = "player-name-group";
+
+      if (player.isBot) {
+        const diffSelect = document.createElement("select");
+        diffSelect.className = "bot-difficulty-select";
+        Constants.BOT_DIFFICULTIES.forEach((d) => {
+          const opt = document.createElement("option");
+          opt.value = d;
+          opt.textContent = d;
+          if (d === player.difficulty) opt.selected = true;
+          diffSelect.appendChild(opt);
+        });
+        // Guests see the same dropdown, just inert — reflects the host's
+        // choice live via the normal state sync, no separate read-only
+        // rendering path needed.
+        diffSelect.disabled = !isOwner;
+        diffSelect.addEventListener("change", () => {
+          if (!room) return;
+          room.send("setBotDifficulty", { botId: sessionId, difficulty: diffSelect.value });
+        });
+        nameGroup.appendChild(diffSelect);
+      }
+
       const nameSpan = document.createElement("span");
       nameSpan.textContent = player.nickname;
-      li.appendChild(nameSpan);
+      nameGroup.appendChild(nameSpan);
+
       if (!player.connected) {
         const tag = document.createElement("span");
         tag.className = "reconnecting-tag";
         tag.textContent = "Reconnecting…";
-        li.appendChild(tag);
+        nameGroup.appendChild(tag);
       }
+      li.appendChild(nameGroup);
+
       if (player.isOwner) {
         const tag = document.createElement("span");
         tag.className = "owner-tag";
         tag.textContent = "Owner";
         li.appendChild(tag);
       } else if (isOwner) {
-        const kickBtn = document.createElement("button");
-        kickBtn.className = "btn-kick";
-        kickBtn.textContent = "Kick";
-        kickBtn.addEventListener("click", () => {
-          if (room) room.send("kickPlayer", { sessionId });
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "btn-kick";
+        removeBtn.textContent = player.isBot ? "Remove" : "Kick";
+        removeBtn.addEventListener("click", () => {
+          if (!room) return;
+          if (player.isBot) room.send("removeBot", { botId: sessionId });
+          else room.send("kickPlayer", { sessionId });
         });
-        li.appendChild(kickBtn);
+        li.appendChild(removeBtn);
       }
       listEl.appendChild(li);
     });
@@ -481,10 +510,14 @@
     document.getElementById("ownerCloseBtn").style.display = isOwner ? "inline-block" : "none";
     document.getElementById("guestLeaveBtn").style.display = isOwner ? "none" : "inline-block";
     document.getElementById("startBtn").style.display = isOwner ? "inline-block" : "none";
+    document.getElementById("addBotBtn").style.display = isOwner ? "inline-block" : "none";
     document.getElementById("waitingNote").style.display = isOwner ? "none" : "block";
 
     const enoughPlayers = state.players.size >= 2;
     document.getElementById("startBtn").disabled = !enoughPlayers;
+    // Bots take up a real seat (see TankRoom's "addBot" handler), so once
+    // the lobby hits MAX_PLAYERS there's no room left for one.
+    document.getElementById("addBotBtn").disabled = state.players.size >= Constants.MAX_PLAYERS;
 
     // Visibility toggle — single button, label + style reflect current state.
     // Owner can change it; guests see it as a static, disabled state.
@@ -540,6 +573,10 @@
 
   document.getElementById("startBtn").addEventListener("click", () => {
     if (room) room.send("start");
+  });
+
+  document.getElementById("addBotBtn").addEventListener("click", () => {
+    if (room) room.send("addBot");
   });
 
   // Allow the room owner to press Enter to start the game, as a

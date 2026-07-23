@@ -191,6 +191,15 @@ input[type="text"].code-input {
   padding: 0.7rem 0;
 }
 
+/* Groups +Bot with Start so footer-row's space-between still treats the
+   right side as a single block — without this, a third top-level child
+   would get spread evenly instead of sitting next to Start. */
+.footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 /* --- Room screen --- */
 
 .room-box {
@@ -284,6 +293,36 @@ input[type="text"].code-input {
   justify-content: space-between;
   align-items: center;
   border-radius: 6px;
+}
+
+/* Wraps the bot-difficulty dropdown (if any) + name + reconnecting-tag as
+   one left-side flex item, so .player-list li's space-between still
+   resolves to exactly two groups (identity on the left, owner-tag/kick
+   on the right) whether or not a row has a dropdown in it. */
+.player-name-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Bot-only difficulty dropdown, sits before the "Bot" name span. Owner
+   can change it (see play.js's "setBotDifficulty" send); guests see the
+   same control disabled, reflecting whatever the host currently has set. */
+.bot-difficulty-select {
+  font-family: inherit;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+  border: 2px solid var(--maroon);
+  border-radius: 6px;
+  background: var(--beige-light);
+  color: var(--maroon);
+  padding: 0.2rem 0.4rem;
+  flex: 0 0 auto;
+}
+
+.bot-difficulty-select:disabled {
+  opacity: 0.7;
+  cursor: default;
 }
 
 /* Highlights the current client's row. Applied at the <li> level so the
